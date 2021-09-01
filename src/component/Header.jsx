@@ -6,7 +6,7 @@ import logo from '../img/logo.png';
 const Header  = () => {
     return (
         <Router>
-          <MDBNavbar color="indigo" dark expand="md">
+          <MDBNavbar color="black" dark expand="md">
             <MDBNavbarBrand>
               <img src={logo}/>
             </MDBNavbarBrand>

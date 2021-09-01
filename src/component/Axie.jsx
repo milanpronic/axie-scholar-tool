@@ -1,6 +1,6 @@
-import React,{useState, useEffect, Fragment} from 'react';
-import { MDBBtn, MDBSelect , MDBDataTableV5 , MDBIcon, MDBInput } from "mdbreact";
-import { FormControl, InputLabel,OutlinedInput,InputAdornment, NativeSelect, Fab } from '@material-ui/core';
+import React,{useState, Fragment} from 'react';
+import { MDBBtn , MDBDataTableV5 , MDBIcon, MDBModal, MDBModalHeader, MDBModalBody, MDBModalFooter } from "mdbreact";
+import { TextField, Fab } from '@material-ui/core';
 const Axie = () => {
     const [tableData, setTableData] = useState({
       columns: [
@@ -109,17 +109,19 @@ const Axie = () => {
           )
         }
       ]
-      });
+    });
+    const [openModal, setOpenModal] = useState(false);
     return (
       <Fragment>
       <div className="container">
         <div className="row mt-4">
-          <div className="col-md-6 row align-items-center">
+          <div className="col-md-6 col-3 row align-items-center">
             <Fab
               size="medium"
               variant="round"
               className="btn-facebook mr-3 border-warning text-warning"
               style={{ border: '1px solid', background: 'white'}}
+              onClick={() => setOpenModal(true)}
             >
               <i className="zmdi zmdi-plus zmdi-hc-2x"></i>
             </Fab>
@@ -130,7 +132,7 @@ const Axie = () => {
               <i className="zmdi zmdi-account-circle zmdi-hc-3x"></i>
             </Fab>
           </div>
-          <div className="col-md-6 text-right">
+          <div className="col-md-6 col-8 text-right">
             <MDBBtn color="warning" style={{borderRadius: '25px'}}>
               <MDBIcon fab={false} icon="star" className="mr-1" />CLAIM REWARDS
             </MDBBtn>
@@ -154,6 +156,23 @@ const Axie = () => {
           }}
           multipleCheckboxes
         />
+        <MDBModal isOpen={openModal}>
+          <MDBModalHeader>Add Scholar</MDBModalHeader>
+          <MDBModalBody>
+            <div>
+              <TextField id="ronin-address" label="Ronin Address" variant="outlined" fullWidth/>
+              <TextField id="scholar" className="mt-4" label="Scholar Name" variant="outlined"  fullWidth/>
+            </div>
+            <div className="d-flex justify-content-between">
+              <TextField id="mananger-share" className="mt-4" label="Manager Share" variant="outlined"  />
+              <TextField id="scholar-share" className="mt-4" label="Scholar Share" variant="outlined"  />
+            </div>
+          </MDBModalBody>
+          <MDBModalFooter>
+            <MDBBtn color="secondary" onClick={() => setOpenModal(false)} style={{ borderRadius: '25px' }}>Close</MDBBtn>
+            <MDBBtn color="primary" onClick={() => setOpenModal(false)} style={{ borderRadius: '25px' }}>Save</MDBBtn>
+          </MDBModalFooter>
+        </MDBModal>
       </div>
       </Fragment>
     )

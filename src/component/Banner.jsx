@@ -7,27 +7,27 @@ const Banner = () => {
                 <p className="mt-5 text-white">UPDATE</p>
                 <div className="row justify-content-center text-white">
                     {/* <div className="col-md-10 row justify-content-between"> */}
-                        <div className="col-md-2">
+                        <div className="col-md-2 col-6">
                             <p className="m-0 h3">32,560 USD</p>
                             <p className="m-0 h6">2,560SLP</p>
                             <p className="m-0 h3">TODAY</p>
                         </div>
-                        <div className="col-md-2">
+                        <div className="col-md-2 col-6">
                             <p className="m-0 h3">32,560 USD</p>
                             <p className="m-0 h6">2,560SLP</p>
                             <p className="m-0 h3">TODAY</p>
                         </div>
-                        <div className="col-md-2">
+                        <div className="col-md-2 col-4">
                             <p className="m-0 h3">32,560 USD</p>
                             <p className="m-0 h6">2,560SLP</p>
                             <p className="m-0 h3">TODAY</p>
                         </div>
-                        <div className="col-md-2">
+                        <div className="col-md-2 col-4">
                             <p className="m-0 h3">32,560 USD</p>
                             <p className="m-0 h6">2,560SLP</p>
                             <p className="m-0 h3">TODAY</p>
                         </div>
-                        <div className="col-md-2">
+                        <div className="col-md-2 col-4">
                             <p className="m-0 h3">32,560 USD</p>
                             <p className="m-0 h6">2,560SLP</p>
                             <p className="m-0 h3">TODAY</p>
