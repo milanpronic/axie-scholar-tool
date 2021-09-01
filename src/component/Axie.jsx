@@ -1,6 +1,7 @@
 import React,{useState, Fragment} from 'react';
 import { MDBBtn , MDBDataTableV5 , MDBIcon, MDBModal, MDBModalHeader, MDBModalBody, MDBModalFooter } from "mdbreact";
 import { TextField, Fab } from '@material-ui/core';
+import { DestResult, PaymentStatus } from './StatusComponent';
 const Axie = () => {
     const [tableData, setTableData] = useState({
       columns: [
@@ -54,19 +55,8 @@ const Axie = () => {
           account: "Edinburgh",
           scholar: "61",
           manager: "2011/04/25",
-          payment: <label className="h6 text-muted">PAID</label>,
-          dest: (
-            <label className="d-flex align-items-center">
-              <span>
-                <i className="fa fa-check-circle fa-2x text-muted"></i>
-              </span>
-              <span className="ml-1">
-                <span className="d-block font-weight-bold">Error.</span>
-                <small className="d-block">See Details</small>
-              </span>
-              
-            </label>
-          )
+          payment: <PaymentStatus status={0}/>,
+          dest: <DestResult status={0}/>
         },
         {
           name: "Tiger Nixon",
@@ -74,19 +64,8 @@ const Axie = () => {
           account: "Edinburgh",
           scholar: "61",
           manager: "2011/04/25",
-          payment: <label className="text-warning h6">UNPAID</label>,
-          dest: (
-            <label className="d-flex align-items-center">
-              <span>
-                <i className="fa fa-times-circle fa-2x text-warning"></i>
-              </span>
-              <span className="ml-1">
-                <span className="d-block font-weight-bold">Error.</span>
-                <small className="d-block">See Details</small>
-              </span>
-              
-            </label>
-          )
+          payment: <PaymentStatus status={1}/>,
+          dest: <DestResult status={1}/>
         },
         {
           name: "Tiger Nixon",
@@ -94,19 +73,8 @@ const Axie = () => {
           account: "Edinburgh",
           scholar: "61",
           manager: "2011/04/25",
-          payment: <label className="text-info h6">PENDING</label>,
-          dest: (
-            <label className="d-flex align-items-center">
-              <span>
-                <i className="fa fa-minus-circle fa-2x text-info"></i>
-              </span>
-              <span className="ml-1">
-                <span className="d-block font-weight-bold">Error.</span>
-                <small className="d-block">See Details</small>
-              </span>
-              
-            </label>
-          )
+          payment: <PaymentStatus status={2}/>,
+          dest: <DestResult status={2}/>
         }
       ]
     });
