@@ -1,8 +1,13 @@
-import React,{useState, Fragment} from 'react';
+import React,{useState, Fragment, useEffect} from 'react';
 import { MDBBtn , MDBDataTableV5 , MDBIcon, MDBModal, MDBModalHeader, MDBModalBody, MDBModalFooter } from "mdbreact";
 import { TextField, Fab } from '@material-ui/core';
-import { DestResult, PaymentStatus } from './StatusComponent';
+import { DestResult, PaymentStatus, ClaimStatus } from './StatusComponent';
+import Loader from "react-loader-spinner";
+import axios from 'axios';
+import reportWebVitals from '../reportWebVitals';
+
 const Axie = () => {
+    const [loading, setLoading] = useState(true);
     const [tableData, setTableData] = useState({
       columns: [
         {
@@ -13,72 +18,68 @@ const Axie = () => {
         },
         {
           label: "Claim Status",
-          field: "claim",
+          field: "claim_state",
           sort: "asc",
           width: 270
         },
         {
           label: "Account Total",
-          field: "account",
+          field: "account_total",
           sort: "asc",
           width: 200
         },
         {
           label: "Schola Share",
-          field: "scholar",
+          field: "scholar_share",
           sort: "asc",
           width: 100
         },
         {
           label: "Manager Share",
-          field: "manager",
+          field: "manager_share",
           sort: "asc",
           width: 150
         },
         {
           label: "Payment Status",
-          field: "payment",
+          field: "payment_state",
           sort: "asc",
           width: 100
         },
         {
           label: "Destination Match",
-          field: "dest",
+          field: "destination_match",
           sort: "asc",
           width: 100
-        }
-      ],
-      rows: [
-        {
-          name: "Tiger Nixon",
-          claim: "System Architect",
-          account: "Edinburgh",
-          scholar: "61",
-          manager: "2011/04/25",
-          payment: <PaymentStatus status={0}/>,
-          dest: <DestResult status={0}/>
-        },
-        {
-          name: "Tiger Nixon",
-          claim: "System Architect",
-          account: "Edinburgh",
-          scholar: "61",
-          manager: "2011/04/25",
-          payment: <PaymentStatus status={1}/>,
-          dest: <DestResult status={1}/>
-        },
-        {
-          name: "Tiger Nixon",
-          claim: "System Architect",
-          account: "Edinburgh",
-          scholar: "61",
-          manager: "2011/04/25",
-          payment: <PaymentStatus status={2}/>,
-          dest: <DestResult status={2}/>
         }
       ]
     });
     const [openModal, setOpenModal] = useState(false);
+    
+    useEffect(() => {
+      axios.get('http://192.168.115.22:3001/scholars?pageno=1&count=3&sortby=manager_share').then(res => {
+      const { data } = res;
+      let ROW = [];
+      data.map(item => {
+        let item_row = {};
+        for (let key in item) {
+          if (key == 'hash') continue ;
+          if (key =='claim_state') {
+            item_row[key] = (<ClaimStatus status={item[key]}/>);
+          }
+          else if (key == 'payment_state') {
+            item_row[key] = (<PaymentStatus status={item[key]}/>);
+          }
+          else if (key == 'destination_match') {
+            item_row[key] = (<DestResult status={item[key]}/>);
+          }
+          else item_row[key] = item[key];
+        }
+        ROW.push(item_row);
+      })
+      setTableData({ ...tableData, rows: ROW });
+      setLoading(false);
+    },[]);
     return (
       <Fragment>
       <div className="container">
@@ -109,21 +110,31 @@ const Axie = () => {
             </MDBBtn>
           </div>
         </div>
-        <MDBDataTableV5
-          hover
-          entriesOptions={[5, 20, 25]}
-          entries={5}
-          pagesAmount={4}
-          data={tableData}
-          checkbox
-          headCheckboxID='id6'
-          bodyCheckboxID='checkboxes6'
-          getValueCheckBox={(e) => {
-          }}
-          getValueAllCheckBoxes={(e) => {
-          }}
-          multipleCheckboxes
-        />
+        { loading ? 
+          <Loader
+            type="Oval"
+            color="#00BFFF"
+            height={100}
+            width={100}
+            className="text-center"
+          />: 
+          
+           <MDBDataTableV5
+            hover
+            entriesOptions={[5, 20, 25]}
+            entries={5}
+            pagesAmount={4}
+            data={tableData}
+            checkbox
+            headCheckboxID='id6'
+            bodyCheckboxID='checkboxes6'
+            getValueCheckBox={(e) => {
+            }}
+            getValueAllCheckBoxes={(e) => {
+            }}
+            multipleCheckboxes
+          />
+        }
         <MDBModal isOpen={openModal}>
           <MDBModalHeader>Add Scholar</MDBModalHeader>
           <MDBModalBody>

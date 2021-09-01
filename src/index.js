@@ -5,6 +5,7 @@ import reportWebVitals from './reportWebVitals';
 import '@fortawesome/fontawesome-free/css/all.min.css';
 import 'bootstrap-css-only/css/bootstrap.min.css';
 import 'mdbreact/dist/css/mdb.css';
+import "react-loader-spinner/dist/loader/css/react-spinner-loader.css";
 import { BrowserRouter } from 'react-router-dom';
 
 ReactDOM.render(
@@ -12,8 +13,6 @@ ReactDOM.render(
     <BrowserRouter>
       <App />
     </BrowserRouter>
-
-
   </React.Fragment>,
   document.getElementById('root')
 );
