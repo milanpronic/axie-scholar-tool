@@ -58,27 +58,28 @@ const Axie = () => {
     
     useEffect(() => {
       axios.get('http://192.168.115.22:3001/scholars?pageno=1&count=3&sortby=manager_share').then(res => {
-      const { data } = res;
-      let ROW = [];
-      data.map(item => {
-        let item_row = {};
-        for (let key in item) {
-          if (key == 'hash') continue ;
-          if (key =='claim_state') {
-            item_row[key] = (<ClaimStatus status={item[key]}/>);
+        const { data } = res;
+        let ROW = [];
+        data.map(item => {
+          let item_row = {};
+          for (let key in item) {
+            if (key == 'hash') continue ;
+            if (key =='claim_state') {
+              item_row[key] = (<ClaimStatus status={item[key]}/>);
+            }
+            else if (key == 'payment_state') {
+              item_row[key] = (<PaymentStatus status={item[key]}/>);
+            }
+            else if (key == 'destination_match') {
+              item_row[key] = (<DestResult status={item[key]}/>);
+            }
+            else item_row[key] = item[key];
           }
-          else if (key == 'payment_state') {
-            item_row[key] = (<PaymentStatus status={item[key]}/>);
-          }
-          else if (key == 'destination_match') {
-            item_row[key] = (<DestResult status={item[key]}/>);
-          }
-          else item_row[key] = item[key];
-        }
-        ROW.push(item_row);
+          ROW.push(item_row);
+        })
+        setTableData({ ...tableData, rows: ROW });
+        setLoading(false);
       })
-      setTableData({ ...tableData, rows: ROW });
-      setLoading(false);
     },[]);
     return (
       <Fragment>
