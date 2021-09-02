@@ -5,7 +5,7 @@ import { DestResult, PaymentStatus, ClaimStatus } from './StatusComponent';
 import Loader from "react-loader-spinner";
 import axios from 'axios';
 import reportWebVitals from '../reportWebVitals';
-
+import { io } from 'socket.io-client';
 const Axie = () => {
     const [loading, setLoading] = useState(true);
     const [tableData, setTableData] = useState({
@@ -55,8 +55,13 @@ const Axie = () => {
       ]
     });
     const [openModal, setOpenModal] = useState(false);
-    
+
     useEffect(() => {
+      const connect = io(process.env.REACT_APP_BACKEND_API, { transports: ["websocket"] });
+      connect.emit('message', "OK?");
+      connect.on('message', (msg) => {
+        console.log(msg);
+      });
       axios.get('http://192.168.115.22:3001/scholars?pageno=1&count=3&sortby=manager_share').then(res => {
         const { data } = res;
         let ROW = [];
@@ -81,6 +86,9 @@ const Axie = () => {
         setLoading(false);
       })
     },[]);
+    useEffect(() => {
+      
+    },[tableData])
     return (
       <Fragment>
       <div className="container">
