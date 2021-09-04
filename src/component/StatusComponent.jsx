@@ -30,31 +30,29 @@ export const DestResult = ({ status }) => {
 }
 
 export const PaymentStatus = ({ status }) => {
-    let text, color;
-    switch(status) {
-        case 0:
-            text = 'PAID';
-            color = 'text-muted';
-            break;
-        case 1:
-            text = 'UNPAID';
-            color = 'text-warning';
-            break;
-        case 2:
-            text = 'PENDING';
-            color = 'text-info';
-            break;
+    const vv = {
+        paid: ['PAID', 'text-muted'],
+        not_paid: ['UNPAID', 'text-warning']
     }
+    
+        // case 2:
+        //     text = 'PENDING';
+        //     color = 'text-info';
+    
     return (
-        <label className={`${color} font-weight-bold`}>{text}</label>
+        <label className={`${vv[status][1]} font-weight-bold`}>{vv[status][0]}</label>
     )
 }
 
 export const ClaimStatus = ({ status }) => {
+    const vv = {
+        "claimed": ["CLAIMED", 'light'],
+        "not_yet": ["NOT YET", 'warning']
+    }
     return (
-        <MDBBadge color={status ? 'light' : 'warning'}
+        <MDBBadge color={vv[status][1]}
         pill className="px-4 py-2">
-        {status ? 'CLAIMED' : 'NOT YET'}
+        {vv[status][0]}
       </MDBBadge>
     )
 }
