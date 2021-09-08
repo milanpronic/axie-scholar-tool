@@ -1,0 +1,2 @@
+export const GET_TABLEDATA = "GET_TABLEDATA";
+export const SET_TABLEDATA = "SET_TABLEDATA";

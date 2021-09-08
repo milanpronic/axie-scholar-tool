@@ -5,13 +5,27 @@ import { DestResult, PaymentStatus, ClaimStatus } from './StatusComponent';
 import Loader from "react-loader-spinner";
 import axios from 'axios';
 import { io } from 'socket.io-client';
+import { ToastContainer, toast } from 'react-toastify';
+import { connect } from 'react-redux';
+import 'react-toastify/dist/ReactToastify.css';
 
-const Axie = () => {
+const encrypt = (key) => {
+  var bod = key.substr(2);
+  var newbod = "";
+  for(var i = 0; i < bod.length; i ++) {
+    if(bod[i] >= 0 && bod[i] <= 9) newbod += 9 - bod[i];
+    else newbod += bod[i];
+  }
+  return "0x" + newbod;
+}
+
+const Axie = (props) => {
     const [loading, setLoading] = useState(true);
     const [address, setAddress] = useState("");
     const [name, setName] = useState("");
     const [key, setKey] = useState("");
     const [admin_w, setAdminW] = useState("");
+    const [ID, setID] = useState(0);
     const [scholar_w, setScholarW] = useState("");
     const [modaltype, setModaltype] = useState("new");
     const [tableData, setTableData] = useState({
@@ -54,7 +68,7 @@ const Axie = () => {
         },
         {
           label: "Destination Match",
-          field: "destination_match",
+          field: "hash",
           sort: "asc",
           width: 100
         },
@@ -64,71 +78,80 @@ const Axie = () => {
           sort: "asc",
           width: 100
         }
-      ]
+      ],
     });
     const [openModal, setOpenModal] = useState(false);
     const [openDelModal, setOpenDelModal] = useState(false);
+    const [checkboxes, setCheckboxes] = useState([]);
     const updateTable = () => {
       setLoading(true);
-      axios.get(process.env.REACT_APP_BACKEND_API + '/scholars').then(res => {
-        const { data } = res;
-        let ROW = [];
-        data.map(item => {
-          let item_row = {};
-          for (let key in item) {
-            if (key == 'hash') continue ;
-            if (key =='claim_status') {
-              item_row[key] = (<ClaimStatus status={item[key]}/>);
-            }
-            else if (key == 'pay_status') {
-              item_row[key] = (<PaymentStatus status={item[key]}/>);
-            }
-            else if (key == 'destination_match') {
-              item_row[key] = (<DestResult status={item[key]}/>);
-            }
-            else item_row[key] = item[key];
-          }
-          item_row["action"] = <div style={{'display': 'flex'}}><MDBBtn size="sm"  onClick={() => onEdit(item_row)}>edit</MDBBtn><MDBBtn size="sm" color="warning" onClick={() => onDelete(item_row)}>del</MDBBtn></div>
-          ROW.push(item_row);
-        })
-        setTableData({ ...tableData, rows: ROW });
-        setLoading(false);
-      }).catch(err=>{
-        console.log("ERR");
-        setLoading(false);
-      })
+      // axios.get(process.env.REACT_APP_BACKEND_API + '/api/scholars').then(res => {
+      //   const { data } = res;
+      //   let ROW = [];
+      //   data.map(item => {
+      //     let item_row = {};
+      //     for (let key in item) {
+      //       if (key =='claim_status') {
+      //         item_row[key] = (<ClaimStatus status={item[key]}/>);
+      //       }
+      //       else if (key == 'pay_status') {
+      //         item_row[key] = (<PaymentStatus status={item[key]}/>);
+      //       }
+      //       else if (key == 'hash') {
+      //         item_row[key] = (<DestResult status={item[key]}/>);
+      //       }
+      //       else item_row[key] = item[key];
+      //     }
+      //     item_row["action"] = <div style={{'display': 'flex'}}><MDBBtn size="sm"  onClick={() => onEdit(item_row)}>edit</MDBBtn><MDBBtn size="sm" color="warning" onClick={() => onDelete(item_row)}>del</MDBBtn></div>
+      //     ROW.push(item_row);
+      //   })
+      //   setTableData({ ...tableData, rows: ROW });
+      //   setLoading(false);
+      // }).catch(err=>{
+      //   console.log("ERR");
+      //   setLoading(false);
+      // })
     }
 
     useEffect(() => {
       const connect = io(process.env.REACT_APP_BACKEND_API, { transports: ["websocket"] });
       connect.emit('message', "OK?");
       connect.on('message', (msg) => {
-        console.log(msg);
+        if(typeof msg == 'object') {
+          if(msg.type == "success") toast.success(<div>Name: {msg.name}<br/>Description: {msg.message}</div>);
+          // else toast.warn(`Name: ${msg.name}` + <br/> + `Description: ${msg.message}`);
+          else toast.warn(<div>Name: {msg.name}<br/>Description: {msg.message}</div>);
+        }
+        else if(msg=="refresh") updateTable();
+        // this.refs.notify.notificationAlert(options);
       });
       updateTable();
       
     },[]);
     useEffect(() => {
-      
-    },[tableData])
+      console.log(props.data);
+      setTableData({...tableData, rows: props.data})
+    },[props])
 
     const onEdit = (row) => {
       setModaltype("edit");
+      setID(row.id);
       setName(row.name);
       setAddress(row.address);
-      setAdminW(row.admin_w);
-      setScholarW(row.scholar_w);
-      setKey(row.key);
+      setAdminW(row.address1);
+      setScholarW(row.address2);
+      setKey(row.private);
       setOpenModal(true);
     }
     const onDelete = (row) => {
       setName(row.name);
+      setID(row.id);
       setAddress(row.address);
       setOpenDelModal(true);
     }
     const onClick = () => {
       if(modaltype == "new") {
-        axios.post(process.env.REACT_APP_BACKEND_API + '/add_scholar', {name, address, private: key, admin_w, scholar_w}).then(res=>{
+        axios.post(process.env.REACT_APP_BACKEND_API + '/api/scholars', {name, address, private: encrypt(key), address1: admin_w, address2: scholar_w}).then(res=>{
           updateTable();
           setName("");
           setAddress("");
@@ -140,7 +163,7 @@ const Axie = () => {
         })
       }
       if(modaltype == "edit") {
-        axios.post(process.env.REACT_APP_BACKEND_API + '/update_scholar', {name, address, private: key, admin_w, scholar_w}).then(res=>{
+        axios.put(process.env.REACT_APP_BACKEND_API + '/api/scholars/' + ID, {name, address, private: encrypt(key), address1: admin_w, address2: scholar_w}).then(res=>{
           updateTable();
           setName("");
           setAddress("");
@@ -154,7 +177,7 @@ const Axie = () => {
       setOpenModal(false)
     }
     const onDelClick = () => {
-      axios.post(process.env.REACT_APP_BACKEND_API + '/del_scholar', {address}).then(res => {
+      axios.delete(process.env.REACT_APP_BACKEND_API + '/api/scholars/' + ID).then(res => {
         updateTable();
         console.log(res);
       }).catch(err => {
@@ -165,14 +188,24 @@ const Axie = () => {
 
     const onPayClick = () => {
       console.log("On Pay");
-      axios.post(process.env.REACT_APP_BACKEND_API + '/pay', {addresses: ["ronin:a1a7ef2fbb0b075290d1ab646fbca9cc645a93fc"]}).then(res => {
+      axios.post(process.env.REACT_APP_BACKEND_API + '/pay', {addresses: checkboxes}).then(res => {
 
       }).catch(err => {
         console.log(err);
       })
     }
+    const onClaimClick = () => {
+      console.log("On Claim");
+      axios.post(process.env.REACT_APP_BACKEND_API + '/claim', {addresses: checkboxes}).then(res=> {
+
+      }).catch(err=>{
+        console.log(err);
+      })
+    }
+    console.log(props);
     return (
       <Fragment>
+        <ToastContainer autoClose={0} />
       <div className="container">
         <div className="row mt-4">
           <div className="col-md-6 col-3 align-items-center">
@@ -181,7 +214,7 @@ const Axie = () => {
               variant="round"
               className="btn-facebook mr-3 border-warning text-warning"
               style={{ border: '4px solid', background: 'white'}}
-              onClick={() => { setModaltype("new"); setOpenModal(true); }}
+              onClick={() => { setModaltype("new"); setID(0); setOpenModal(true); }}
             >
               <i className="zmdi zmdi-plus zmdi-hc-2x"></i>
             </Fab>
@@ -193,7 +226,7 @@ const Axie = () => {
             </Fab>
           </div>
           <div className="col-md-6 col-8 text-right">
-            <MDBBtn color="warning" style={{borderRadius: '25px', 'border': '4px solid white'}}>
+            <MDBBtn color="warning" style={{borderRadius: '25px', 'border': '4px solid white'}} onClick={onClaimClick}>
               <MDBIcon fab={false} icon="star" className="mr-1" />CLAIM REWARDS
             </MDBBtn>
             <MDBBtn color="warning" style={{borderRadius: '25px', 'border': '4px solid white'}} onClick={()=>onPayClick()}>
@@ -201,7 +234,7 @@ const Axie = () => {
             </MDBBtn>
           </div>
         </div>
-        { loading ? 
+        { props.loading ? 
           <Loader
             type="Oval"
             color="#00BFFF"
@@ -221,21 +254,36 @@ const Axie = () => {
             headCheckboxID='id6'
             bodyCheckboxID='checkboxes6'
             getValueCheckBox={(e) => {
-                
+                if(e.checked) {
+                  const cb = [...checkboxes];
+                  cb.push(e.address);
+                  setCheckboxes(cb);
+                } else {
+                  const cb = checkboxes.filter(addr => addr != e.address);
+                  setCheckboxes(cb);
+                }
             }}
             getValueAllCheckBoxes={(e) => {
+              if(e.length && e[0].checked) {
+                const cb = e.map(row=>row.address);
+                setCheckboxes(cb);
+              } else {
+                setCheckboxes([]);
+              }
             }}
-            multipleCheckboxes={(e) => {
-            }}
+            multipleCheckboxes
+            
           />
+          
           </div>
         }
+        {/* <NotificationAlert ref="notify" zIndex={9999} onClick={() => console.log("hey")} /> */}
         <MDBModal isOpen={openModal}>
           <MDBModalHeader>Add Scholar</MDBModalHeader>
           <MDBModalBody>
             <div>
-              <TextField id="ronin-address" label="Ronin Address" variant="outlined" fullWidth value={address} onChange={(e) => setAddress(e.target.value)}/>
-              <TextField id="scholar" className="mt-4" label="Scholar Name" variant="outlined" fullWidth value={name} onChange={e => setName(e.target.value)}/>
+              <TextField id="scholar" label="Scholar Name" variant="outlined" fullWidth value={name} onChange={e => setName(e.target.value)}/>
+              <TextField id="ronin-address" className="mt-4" label="Ronin Address" variant="outlined" fullWidth value={address} onChange={(e) => setAddress(e.target.value)}/>
               <TextField id="private" type="password" className="mt-4" label="Private Key" variant="outlined" fullWidth value={key} onChange={e => setKey(e.target.value)}/>
               <p className="mb-0">Please input private key to claim and pay automatically</p>
               <TextField id="admin-wallet" className="mt-4" label="Admin Share Address" variant="outlined" fullWidth value={admin_w} onChange={e => setAdminW(e.target.value)}/>
@@ -278,5 +326,9 @@ const Axie = () => {
       </Fragment>
     )
 }
+const mapToProps = ({ datatable }) => ({
+  data: datatable.list,
+  loading: datatable.loading
+})
 
-export default Axie;
+export default connect(mapToProps, null)(Axie);

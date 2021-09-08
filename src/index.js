@@ -7,13 +7,16 @@ import 'bootstrap-css-only/css/bootstrap.min.css';
 import 'mdbreact/dist/css/mdb.css';
 import "react-loader-spinner/dist/loader/css/react-spinner-loader.css";
 import { BrowserRouter } from 'react-router-dom';
-
+import store from './store';
+import { Provider } from 'react-redux';
 ReactDOM.render(
-  <React.Fragment>
-    <BrowserRouter>
-      <App />
-    </BrowserRouter> 
-  </React.Fragment>,
+  <Provider store={store}>
+    <React.Fragment>
+      <BrowserRouter>
+        <App />
+      </BrowserRouter> 
+    </React.Fragment>
+  </Provider>,
   document.getElementById('root')
 );
 
