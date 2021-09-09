@@ -1,6 +1,6 @@
 import { useState ,useEffect } from "react";
 import { MDBBadge } from 'mdbreact';
-export const DestResult = ({ status }) => {
+export const DestResult = ({ hash, hash1, hash2 }) => {
     // let icon, title;
     // switch(status) {
     //     case 0:
@@ -27,29 +27,24 @@ export const DestResult = ({ status }) => {
     //         </span>
     //     </label>
     // )
-    if(status)
+    
     return (
-        
-        <a href={"https://explorer.roninchain.com/tx/" + status} target="_blank">{status.substr(0,6) + "..." + status.substr(-4)}</a>
+        <div>
+        {hash ? <div><a href={"https://explorer.roninchain.com/tx/" + hash} target="_blank">{hash.substr(0,6) + "..." + hash.substr(-4)}</a><br/></div> : ""}
+        {hash1 ? <div><a href={"https://explorer.roninchain.com/tx/" + hash1} target="_blank">{hash1.substr(0,6) + "..." + hash1.substr(-4)}</a><br/></div> : ""}
+        {hash2 ? <div><a href={"https://explorer.roninchain.com/tx/" + hash2} target="_blank">{hash2.substr(0,6) + "..." + hash2.substr(-4)}</a></div> : ""}
+        </div>
     )
-    else{
-        return '';
-    }
+    
 }
 
 export const PaymentStatus = ({ status }) => {
-    console.log(status);
     if(status == undefined) return '';
     const vv = {
-        paid: ['PAID', 'text-muted'],
-        not_paid: ['UNPAID', 'text-warning'],
-        pending: ['PENDING', 'text-warning']
+        0: ['UNPAID', 'text-warning'],
+        1: ['PAID', 'text-muted'],
+        2: ['PENDING', 'text-info']
     }
-    
-        // case 2:
-        //     text = 'PENDING';
-        //     color = 'text-info';
-    
     return (
         <label className={`${vv[status][1]} font-weight-bold`}>{vv[status][0]}</label>
     )
@@ -58,13 +53,13 @@ export const PaymentStatus = ({ status }) => {
 export const ClaimStatus = ({ status }) => {
     if(status == undefined) return '';
     const vv = {
-        "claimed": ["CLAIMED", 'light'],
-        "not_yet": ["NOT YET", 'warning']
+        0: ["NOT YET", 'warning'],
+        1: ["CLAIMED", 'light'],
+        2: ["PENDING", 'info']
     }
     return (
-        <MDBBadge color={vv[status][1]}
-        pill className="px-4 py-2">
-        {vv[status][0]}
-      </MDBBadge>
+        <MDBBadge color={vv[status][1]} pill className="px-4 py-2">
+            {vv[status][0]}
+        </MDBBadge>
     )
 }

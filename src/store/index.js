@@ -7,5 +7,5 @@ const middleware = [thunk];
 const store = createStore(reducers, compose(
     applyMiddleware(...middleware)
 ));
-store.dispatch(get_datatable());
+// store.dispatch(get_datatable());
 export default store;

@@ -1,8 +1,8 @@
 import { combineReducers } from "redux";
-import datatableReducer from "./datatable.reducer";
+import summaryReducer from "./summary.reducer";
 
 const reducers = combineReducers({
-    datatable: datatableReducer
+    summary: summaryReducer
 })
 
-export default reducers;
+export default summaryReducer;
