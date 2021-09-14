@@ -27,6 +27,12 @@ const columns = [
 	width: 150
   },
   {
+	label: "Next Claim",
+	field: "next",
+	sort: "asc",
+	width: 150
+  },
+  {
 	label: "Claim Status",
 	field: "claim_status",
 	sort: "asc",
@@ -86,7 +92,7 @@ const Axie = (props) => {
 	const [openModal, setOpenModal] = useState(false);
 	const [openDelModal, setOpenDelModal] = useState(false);
 	const [checkboxes, setCheckboxes] = useState([]);
-	
+
 	const updateTable = () => {
 	  	setLoading(true);
 	  	axios.get(process.env.REACT_APP_BACKEND_API + '/api/scholars').then(res => {
@@ -110,6 +116,9 @@ const Axie = (props) => {
 				item_row["manager"] = (item_row["total"] * 0.7).toFixed(0);
 				item_row["scholar"] = item_row["total"] - item_row["manager"];
 				item_row["hash"] = <DestResult hash={item_row["claim_result"]} hash1={item_row["pay_result1"]} hash2={item_row["pay_result2"]}/>
+				let last_time = new Date(item_row["last_time"]);
+				let next_time = new Date(last_time.getTime() + 14*24*3600*1000);
+				item_row["next"] = (next_time.getMonth() + 1) + "/" + next_time.getDate() + " " + next_time.getHours() + ":" + next_time.getMinutes();
 				item_row["action"] = <div style={{'display': 'flex'}}><MDBBtn size="sm"  onClick={() => onEdit(item_row)}>edit</MDBBtn><MDBBtn size="sm" color="warning" onClick={() => onDelete(item_row)}>del</MDBBtn></div>
 				if(item_row["total"]) total += item_row["total"];
 				if(item_row["axie"]) axie += item_row["axie"];
@@ -128,6 +137,7 @@ const Axie = (props) => {
 
 	useEffect(() => {
 	  	const connect = io(process.env.REACT_APP_BACKEND_API, { transports: ["websocket"] });
+		
 	  	connect.emit('message', "OK?");
 	  	connect.on('message', (msg) => {
 			if(typeof msg == 'object') {
@@ -200,13 +210,15 @@ const Axie = (props) => {
 	  	})
 	}
 	const onClaimClick = () => {
-	  	axios.post(process.env.REACT_APP_BACKEND_API + '/claim', {addresses: checkboxes}).then(res=> {
+	  	axios.post(process.env.REACT_APP_BACKEND_API + '/api/claim', {addresses: checkboxes}).then(res=> {
 			updateTable();
 	  	}).catch(err=>{
 			console.log(err);
 	  	})
 	}
-	
+	const onRefreshClick = () => {
+		updateTable();
+	}
 	return (
 	  <Fragment>
 		<ToastContainer autoClose={0} />
@@ -230,6 +242,9 @@ const Axie = (props) => {
 			</Fab>
 		  </div>
 		  <div className="col-md-6 col-8 text-right">
+		  	<MDBBtn color="warning" style={{borderRadius: '25px', 'border': '4px solid white'}} onClick={onRefreshClick}>
+			  <MDBIcon fab={false} className="mr-1" />REFRESH
+			</MDBBtn>
 			<MDBBtn color="warning" style={{borderRadius: '25px', 'border': '4px solid white'}} onClick={onClaimClick}>
 			  <MDBIcon fab={false} icon="star" className="mr-1" />CLAIM REWARDS
 			</MDBBtn>
