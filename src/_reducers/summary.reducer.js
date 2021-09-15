@@ -6,7 +6,7 @@ const data = {
     axie: 0
 };
 
-export default function(state = data, action) {
+export function summary(state = data, action) {
     switch(action.type) {
         case "SET_SUMMARY":
             return {...action.payload};
@@ -16,3 +16,4 @@ export default function(state = data, action) {
             break;
     }
 }
+

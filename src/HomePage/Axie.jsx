@@ -7,7 +7,7 @@ import axios from 'axios';
 import { io } from 'socket.io-client';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 
 const encrypt = (key) => {
 	if(key == "") return key;
@@ -76,6 +76,7 @@ const columns = [
   }
 ]
 const Axie = (props) => {
+	const user = useSelector(state => state.authentication.user);
 	const dispatch = useDispatch();
 	const [loading, setLoading] = useState(true);
 	const [ID, setID] = useState(0);
@@ -84,6 +85,7 @@ const Axie = (props) => {
 	const [key, setKey] = useState("");
 	const [admin_w, setAdminW] = useState("");
 	const [scholar_w, setScholarW] = useState("");
+	const [scholar_p, setScholarP] = useState("30");
 	const [modaltype, setModaltype] = useState("new");
 	const [tableData, setTableData] = useState({
 		columns
@@ -113,13 +115,13 @@ const Axie = (props) => {
 					}
 					else item_row[key] = item[key];
 				}
-				item_row["manager"] = (item_row["total"] * 0.7).toFixed(0);
-				item_row["scholar"] = item_row["total"] - item_row["manager"];
+				item_row["scholar"] = (item_row["total"] * item_row["scholarp"] / 100).toFixed(0);
+				item_row["manager"] = item_row["total"] - item_row["scholar"];
 				item_row["hash"] = <DestResult hash={item_row["claim_result"]} hash1={item_row["pay_result1"]} hash2={item_row["pay_result2"]}/>
 				let last_time = new Date(item_row["last_time"]);
 				let next_time = new Date(last_time.getTime() + 14*24*3600*1000);
 				item_row["next"] = (next_time.getMonth() + 1) + "/" + next_time.getDate() + " " + next_time.getHours() + ":" + next_time.getMinutes();
-				item_row["action"] = <div style={{'display': 'flex'}}><MDBBtn size="sm"  onClick={() => onEdit(item_row)}>edit</MDBBtn><MDBBtn size="sm" color="warning" onClick={() => onDelete(item_row)}>del</MDBBtn></div>
+				item_row["action"] = <div style={{'display': 'flex'}}><MDBBtn size="sm" disabled={user.scholar != true} onClick={() => onEdit(item_row)}>edit</MDBBtn><MDBBtn size="sm" color="warning" disabled={user.scholar != true} onClick={() => onDelete(item_row)}>del</MDBBtn></div>
 				if(item_row["total"]) total += item_row["total"];
 				if(item_row["axie"]) axie += item_row["axie"];
 				if(item_row["balance"]) balance += item_row["balance"];
@@ -128,6 +130,7 @@ const Axie = (props) => {
 			})
 			dispatch({type: "SET_SUMMARY", payload: {total, today: 0, unclaimed: total-balance, accounts: ROW.length, axie}});
 			setTableData({ ...tableData, rows: ROW });
+			setCheckboxes([]);
 			setLoading(false);
 	  	}).catch(err=>{
 			console.log("ERR");
@@ -157,6 +160,7 @@ const Axie = (props) => {
 		setAddress(row.address);
 		setAdminW(row.address1);
 		setScholarW(row.address2);
+		setScholarP(row.scholarp);
 		setKey(row.private);
 		setOpenModal(true);
 	}
@@ -168,26 +172,28 @@ const Axie = (props) => {
 	}
 	const onSaveClick = () => {
 	  	if(modaltype == "new") {
-			const res = axios.post(process.env.REACT_APP_BACKEND_API + '/api/scholars', {name, address, private: encrypt(key), address1: admin_w, address2: scholar_w}).then(res=>{
+			const res = axios.post(process.env.REACT_APP_BACKEND_API + '/api/scholars', {name, address, private: encrypt(key), address1: admin_w, address2: scholar_w, scholarp: scholar_p}).then(res=>{
 				updateTable();
 				setName("");
 				setAddress("");
 				setKey("");
 				setAdminW("");
 				setScholarW("");
+				setScholarP("30");
 			}).catch(({response }) => {
 		  		toast.error(<div>{response.data.message}</div>);
 			});
 			console.log(res);
 	  	}
 	  	if(modaltype == "edit") {
-			axios.put(process.env.REACT_APP_BACKEND_API + '/api/scholars/' + ID, {name, address, private: encrypt(key), address1: admin_w, address2: scholar_w}).then(res=>{
+			axios.put(process.env.REACT_APP_BACKEND_API + '/api/scholars/' + ID, {name, address, private: encrypt(key), address1: admin_w, address2: scholar_w, scholarp: scholar_p}).then(res=>{
 				updateTable();
 				setName("");
 				setAddress("");
 				setKey("");
 				setAdminW("");
 				setScholarW("");
+				setScholarP("30");
 			}).catch(({response}) => {
 		  		toast.error(<div>{response.data.message}</div>);
 			})
@@ -230,6 +236,7 @@ const Axie = (props) => {
 			  variant="round"
 			  className="btn-facebook mr-3 border-warning text-warning"
 			  style={{ border: '4px solid', background: 'white'}}
+			  disabled={user.scholar != true}
 			  onClick={() => { setModaltype("new"); setID(0); setOpenModal(true); }}
 			>
 			  <i className="zmdi zmdi-plus zmdi-hc-2x"></i>
@@ -243,12 +250,12 @@ const Axie = (props) => {
 		  </div>
 		  <div className="col-md-6 col-8 text-right">
 		  	<MDBBtn color="warning" style={{borderRadius: '25px', 'border': '4px solid white'}} onClick={onRefreshClick}>
-			  <MDBIcon fab={false} className="mr-1" />REFRESH
+			  <MDBIcon fab={false} icon="log-out" className="mr-1" />REFRESH
 			</MDBBtn>
-			<MDBBtn color="warning" style={{borderRadius: '25px', 'border': '4px solid white'}} onClick={onClaimClick}>
+			<MDBBtn color="warning" style={{borderRadius: '25px', 'border': '4px solid white'}} onClick={onClaimClick} disabled={user.scholar != true}>
 			  <MDBIcon fab={false} icon="star" className="mr-1" />CLAIM REWARDS
 			</MDBBtn>
-			<MDBBtn color="warning" style={{borderRadius: '25px', 'border': '4px solid white'}} onClick={()=>onPayClick()}>
+			<MDBBtn color="warning" style={{borderRadius: '25px', 'border': '4px solid white'}} onClick={()=>onPayClick()} disabled={user.scholar != true}>
 			  <MDBIcon fab={false} icon="log-out" className="mr-1" />PAY SCHOLARS
 			</MDBBtn>
 		  </div>
@@ -306,9 +313,15 @@ const Axie = (props) => {
 			  <TextField id="private" type="password" className="mt-4" label="Private Key" variant="outlined" fullWidth value={key} onChange={e => setKey(e.target.value)}/>
 			  <p className="mb-0">Please input private key to claim and pay automatically</p>
 			  <TextField id="admin-wallet" className="mt-4" label="Admin Share Address" variant="outlined" fullWidth value={admin_w} onChange={e => setAdminW(e.target.value)}/>
-			  <p className="mb-0">Admin Share 70%</p>
 			  <TextField id="private-wallet" className="mt-4" label="Scholar Share Address" variant="outlined" fullWidth value={scholar_w} onChange={e => setScholarW(e.target.value)}/>
-			  <p className="mb-0">Scholar Share 30%</p>
+				<div class="row">
+					<div class="col-6">
+					  <TextField className="mt-4" label="Scholar Share Percent" variant="outlined" fullWidth value={scholar_p} onChange={e => setScholarP(e.target.value)}/>
+					</div>
+					<div class="col-6">
+						<TextField className="mt-4" label="Admin Share Percent" variant="outlined" fullWidth value={100-scholar_p} />
+					</div>
+				</div>			  
 			</div>
 	
 		  </MDBModalBody>

@@ -3,11 +3,11 @@ import {useState, useEffect} from 'react';
 import { useSelector } from 'react-redux';
 import '../rjs.css';
 const Banner = () => {
-    const total = useSelector(state=>state.total);
-    const today = useSelector(state=>state.today);
-    const unclaimed = useSelector(state=>state.unclaimed);
-    const accounts = useSelector(state=>state.accounts);
-    const axie = useSelector(state=>state.axie);
+    const total = useSelector(state=>state.summary.total);
+    const today = useSelector(state=>state.summary.today);
+    const unclaimed = useSelector(state=>state.summary.unclaimed);
+    const accounts = useSelector(state=>state.summary.accounts);
+    const axie = useSelector(state=>state.summary.axie);
     const [rate, setRate] = useState(0);
     useEffect(() => {
         axios.get('https://api.coingecko.com/api/v3/simple/token_price/ethereum?contract_addresses=0xcc8fa225d80b9c7d42f96e9570156c65d6caaa25&vs_currencies=usd').then(res => {
