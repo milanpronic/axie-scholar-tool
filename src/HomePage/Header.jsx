@@ -13,7 +13,7 @@ const Header  = () => {
         <Router >
           <MDBNavbar style={{background: '#231f20'}}  dark expand="md">
             <MDBNavbarBrand>
-              <img src={logo}/>
+              <img src={logo} onClick={()=>{history.push({pathname: '/'});}}/>
             </MDBNavbarBrand>
             <MDBNavbarToggler  />
             <MDBCollapse id="navbarCollapse3"  navbar>
@@ -25,6 +25,7 @@ const Header  = () => {
                     <span className="ml-1">{user.firstName + ' ' + user.lastName}</span>
                   </MDBDropdownToggle>
                   <MDBDropdownMenu basic>
+                    <MDBDropdownItem onClick={()=>{history.push({pathname: '/admin'});}}>Admin</MDBDropdownItem>
                     <MDBDropdownItem onClick={()=>{history.push({pathname: '/login'});}}>Logout</MDBDropdownItem>
                   </MDBDropdownMenu>
                 </MDBDropdown>

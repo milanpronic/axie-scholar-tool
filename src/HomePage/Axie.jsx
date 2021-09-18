@@ -85,15 +85,16 @@ const Axie = (props) => {
 	const [key, setKey] = useState("");
 	const [admin_w, setAdminW] = useState("");
 	const [scholar_w, setScholarW] = useState("");
-	const [scholar_p, setScholarP] = useState("30");
 	const [modaltype, setModaltype] = useState("new");
 	const [tableData, setTableData] = useState({
 		columns
 	});
-	
+	const [totalBalance, setTotalBalance] = useState(0);
 	const [openModal, setOpenModal] = useState(false);
 	const [openDelModal, setOpenDelModal] = useState(false);
 	const [checkboxes, setCheckboxes] = useState([]);
+
+	const [rule, setRule] = useState([[10000, 30]]);
 
 	const updateTable = () => {
 	  	setLoading(true);
@@ -115,8 +116,15 @@ const Axie = (props) => {
 					}
 					else item_row[key] = item[key];
 				}
-				item_row["scholar"] = (item_row["total"] * item_row["scholarp"] / 100).toFixed(0);
-				item_row["manager"] = item_row["total"] - item_row["scholar"];
+				item_row["rule"] = JSON.parse(item_row["rule"]);
+				
+				for(var i = item_row["rule"].length - 1; i >= 0; i --) {
+					if(item_row["rule"][i][0] > item_row["total"]) {
+						item_row["scholar"] = (item_row["total"] * item_row["rule"][i][1] / 100).toFixed(0);
+						item_row["manager"] = item_row["total"] - item_row["scholar"];
+					}
+				}
+				
 				item_row["hash"] = <DestResult hash={item_row["claim_result"]} hash1={item_row["pay_result1"]} hash2={item_row["pay_result2"]}/>
 				let last_time = new Date(item_row["last_time"]);
 				let next_time = new Date(last_time.getTime() + 14*24*3600*1000);
@@ -152,7 +160,18 @@ const Axie = (props) => {
 	  	updateTable();
 	},[]);
 
-	
+	const onNewClick = () => {
+		setModaltype("new"); 
+		setID(0); 
+		setName("");
+		setAddress("");
+		setAdminW("");
+		setScholarW("");
+		setRule([[10000, 30]]);
+		setKey("");
+		setTotalBalance(0);
+		setOpenModal(true);
+	}
 	const onEdit = (row) => {
 	  	setModaltype("edit");
 		setID(row.id);
@@ -160,8 +179,9 @@ const Axie = (props) => {
 		setAddress(row.address);
 		setAdminW(row.address1);
 		setScholarW(row.address2);
-		setScholarP(row.scholarp);
+		setRule(row.rule);
 		setKey(row.private);
+		setTotalBalance(row.total);
 		setOpenModal(true);
 	}
 	const onDelete = (row) => {
@@ -172,28 +192,28 @@ const Axie = (props) => {
 	}
 	const onSaveClick = () => {
 	  	if(modaltype == "new") {
-			const res = axios.post(process.env.REACT_APP_BACKEND_API + '/api/scholars', {name, address, private: encrypt(key), address1: admin_w, address2: scholar_w, scholarp: scholar_p}).then(res=>{
+			const res = axios.post(process.env.REACT_APP_BACKEND_API + '/api/scholars', {name, address, private: encrypt(key), address1: admin_w, address2: scholar_w, rule}).then(res=>{
 				updateTable();
 				setName("");
 				setAddress("");
 				setKey("");
 				setAdminW("");
 				setScholarW("");
-				setScholarP("30");
+				setRule([[10000, 30]]);
 			}).catch(({response }) => {
 		  		toast.error(<div>{response.data.message}</div>);
 			});
 			console.log(res);
 	  	}
 	  	if(modaltype == "edit") {
-			axios.put(process.env.REACT_APP_BACKEND_API + '/api/scholars/' + ID, {name, address, private: encrypt(key), address1: admin_w, address2: scholar_w, scholarp: scholar_p}).then(res=>{
+			axios.put(process.env.REACT_APP_BACKEND_API + '/api/scholars/' + ID, {name, address, private: encrypt(key), address1: admin_w, address2: scholar_w, rule}).then(res=>{
 				updateTable();
 				setName("");
 				setAddress("");
 				setKey("");
 				setAdminW("");
 				setScholarW("");
-				setScholarP("30");
+				setRule([[10000, 30]]);
 			}).catch(({response}) => {
 		  		toast.error(<div>{response.data.message}</div>);
 			})
@@ -225,9 +245,21 @@ const Axie = (props) => {
 	const onRefreshClick = () => {
 		updateTable();
 	}
+
+	const onAddRule = () => {
+		setRule([...rule, [10000, 70]]);
+	}
+	const onDelRule = (idx) => {
+		rule.splice(idx, 1);
+		setRule([...rule]);
+	}
+	const onUpdateRule = (idx, i, v) => {
+		rule[idx][i] = v;
+		setRule([...rule]);
+	}
 	return (
 	  <Fragment>
-		<ToastContainer autoClose={0} />
+		<ToastContainer autoClose={2000} />
 	  <div className="container">
 		<div className="row mt-4">
 		  <div className="col-md-6 col-3 align-items-center">
@@ -237,7 +269,7 @@ const Axie = (props) => {
 			  className="btn-facebook mr-3 border-warning text-warning"
 			  style={{ border: '4px solid', background: 'white'}}
 			  disabled={user.scholar != true}
-			  onClick={() => { setModaltype("new"); setID(0); setOpenModal(true); }}
+			  onClick={onNewClick}
 			>
 			  <i className="zmdi zmdi-plus zmdi-hc-2x"></i>
 			</Fab>
@@ -303,7 +335,7 @@ const Axie = (props) => {
 		  
 		  </div>
 		}
-	
+		
 		<MDBModal isOpen={openModal}>
 		  <MDBModalHeader>Add Scholar</MDBModalHeader>
 		  <MDBModalBody>
@@ -314,14 +346,26 @@ const Axie = (props) => {
 			  <p className="mb-0">Please input private key to claim and pay automatically</p>
 			  <TextField id="admin-wallet" className="mt-4" label="Admin Share Address" variant="outlined" fullWidth value={admin_w} onChange={e => setAdminW(e.target.value)}/>
 			  <TextField id="private-wallet" className="mt-4" label="Scholar Share Address" variant="outlined" fullWidth value={scholar_w} onChange={e => setScholarW(e.target.value)}/>
-				<div class="row">
-					<div class="col-6">
-					  <TextField className="mt-4" label="Scholar Share Percent" variant="outlined" fullWidth value={scholar_p} onChange={e => setScholarP(e.target.value)}/>
+			  <MDBBtn color="primary" style={{borderRadius: '50%', 'border': '2px solid white', padding: '6px 12px', marginTop: '25px'}} onClick={onAddRule}> <MDBIcon fab={false} icon="plus"/> </MDBBtn>
+			  {rule.map((row, idx) => {
+				  return (
+				<div class="row" style={((idx == 0 && totalBalance < row[0]) || (idx != 0 && totalBalance < row[0] && totalBalance >= rule[idx-1][0])) ? {backgroundColor: 'wheat'}: {}}>
+					<div class="col-3">
+						<MDBBtn color="warning" style={{borderRadius: '50%', 'border': '2px solid white', padding: '6px 12px', marginTop: '34px', marginLeft: '40px'}} onClick={()=>{onDelRule(idx)}} > <MDBIcon fab={false} icon="times"/> {idx}</MDBBtn>
 					</div>
-					<div class="col-6">
-						<TextField className="mt-4" label="Admin Share Percent" variant="outlined" fullWidth value={100-scholar_p} />
+					<div class="col-3">
+						<TextField className="mt-4" label="Total<" variant="outlined" fullWidth value={row[0]} onChange={e => onUpdateRule(idx, 0, e.target.value)}/>
 					</div>
-				</div>			  
+					<div class="col-3">
+						<TextField className="mt-4" label="Scholar" variant="outlined" fullWidth value={row[1]} onChange={e => onUpdateRule(idx, 1, e.target.value)}/>
+					</div>
+					<div class="col-3">
+						<TextField className="mt-4" label="Admin" variant="outlined" fullWidth value={100-row[1]} />
+					</div>
+				</div>	
+				  );
+			  })}
+						  
 			</div>
 	
 		  </MDBModalBody>
