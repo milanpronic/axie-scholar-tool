@@ -1,9 +1,9 @@
 const data = {
-    today: 0,
     total: 0,
-    unclaimed: 0,
+    manager: 0,
+    scholar: 0,
     accounts: 0,
-    axie: 0
+    latest: Date.now()
 };
 
 export function summary(state = data, action) {

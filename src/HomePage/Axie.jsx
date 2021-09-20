@@ -101,9 +101,10 @@ const Axie = (props) => {
 	  	axios.get(process.env.REACT_APP_BACKEND_API + '/api/scholars').then(res => {
 			const { data } = res;
 			let ROW = [];
-			let total = 0, balance = 0, axie = 0;
+			let total = 0, manager = 0, scholar = 0, latest = 0;
 			data.map(item => {
 		  		let item_row = {};
+				if(item["total"] > 0 && item["claim_status"] == 0) item["pay_status"] = 0;
 		  		for (let key in item) {
 					if (key =='claim_status') {
 						item_row[key] = (<ClaimStatus status={item[key]}/>);
@@ -130,13 +131,13 @@ const Axie = (props) => {
 				let next_time = new Date(last_time.getTime() + 14*24*3600*1000);
 				item_row["next"] = (next_time.getMonth() + 1) + "/" + next_time.getDate() + " " + next_time.getHours() + ":" + next_time.getMinutes();
 				item_row["action"] = <div style={{'display': 'flex'}}><MDBBtn size="sm" disabled={user.scholar != true} onClick={() => onEdit(item_row)}>edit</MDBBtn><MDBBtn size="sm" color="warning" disabled={user.scholar != true} onClick={() => onDelete(item_row)}>del</MDBBtn></div>
-				if(item_row["total"]) total += item_row["total"];
-				if(item_row["axie"]) axie += item_row["axie"];
-				if(item_row["balance"]) balance += item_row["balance"];
-		  
+				if(item_row["total"]) total += item_row["total"]*1;
+				if(item_row["manager"]) manager += item_row["manager"]*1;
+				if(item_row["scholar"]) scholar += item_row["scholar"]*1;
+				if(item_row["last_paid_date"] && latest < item_row["last_paid_date"]) latest = item_row["last_paid_date"]; 
 		  		ROW.push(item_row);
 			})
-			dispatch({type: "SET_SUMMARY", payload: {total, today: 0, unclaimed: total-balance, accounts: ROW.length, axie}});
+			dispatch({type: "SET_SUMMARY", payload: {total, manager, scholar, accounts: ROW.length, latest}});
 			setTableData({ ...tableData, rows: ROW });
 			setCheckboxes([]);
 			setLoading(false);
@@ -191,8 +192,10 @@ const Axie = (props) => {
 		setOpenDelModal(true);
 	}
 	const onSaveClick = () => {
+		let postdata = {name, address, address1: admin_w, address2: scholar_w, rule};
+		if(key != "") postdata["private"] = encrypt(key);
 	  	if(modaltype == "new") {
-			const res = axios.post(process.env.REACT_APP_BACKEND_API + '/api/scholars', {name, address, private: encrypt(key), address1: admin_w, address2: scholar_w, rule}).then(res=>{
+			const res = axios.post(process.env.REACT_APP_BACKEND_API + '/api/scholars', postdata).then(res=>{
 				updateTable();
 				setName("");
 				setAddress("");
@@ -206,7 +209,7 @@ const Axie = (props) => {
 			console.log(res);
 	  	}
 	  	if(modaltype == "edit") {
-			axios.put(process.env.REACT_APP_BACKEND_API + '/api/scholars/' + ID, {name, address, private: encrypt(key), address1: admin_w, address2: scholar_w, rule}).then(res=>{
+			axios.put(process.env.REACT_APP_BACKEND_API + '/api/scholars/' + ID, postdata).then(res=>{
 				updateTable();
 				setName("");
 				setAddress("");
