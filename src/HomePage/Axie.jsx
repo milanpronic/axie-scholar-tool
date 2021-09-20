@@ -8,7 +8,16 @@ import { io } from 'socket.io-client';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { useDispatch, useSelector } from 'react-redux';
-
+import Table from '@mui/material/Table';
+import TableBody from '@mui/material/TableBody';
+import TableCell from '@mui/material/TableCell';
+import TableContainer from '@mui/material/TableContainer';
+import TableHead from '@mui/material/TableHead';
+import TableRow from '@mui/material/TableRow';
+import Paper from '@mui/material/Paper';
+import TablePagination from '@mui/material/TablePagination';
+import Checkbox from '@mui/material/Checkbox';
+import './axie.css';
 const encrypt = (key) => {
 	if(key == "") return key;
   	var bod = key.substr(2);
@@ -24,55 +33,47 @@ const columns = [
 	label: "Name",
 	field: "name",
 	sort: "asc",
-	width: 150
   },
   {
 	label: "Next Claim",
 	field: "next",
 	sort: "asc",
-	width: 150
+	width: 120
   },
   {
 	label: "Claim Status",
 	field: "claim_status",
 	sort: "asc",
-	width: 270
   },
   {
 	label: "Account Total",
 	field: "total",
 	sort: "asc",
-	width: 200
   },
   {
 	label: "Scholar Share",
 	field: "scholar",
 	sort: "asc",
-	width: 100
   },
   {
 	label: "Manager Share",
 	field: "manager",
 	sort: "asc",
-	width: 150
   },
   {
 	label: "Payment Status",
 	field: "pay_status",
 	sort: "asc",
-	width: 100
   },
   {
 	label: "Destination Match",
 	field: "hash",
 	sort: "asc",
-	width: 100
   },
   {
 	label: "Action",
 	field: "action",
 	sort: "asc",
-	width: 100
   }
 ]
 const Axie = (props) => {
@@ -89,13 +90,61 @@ const Axie = (props) => {
 	const [tableData, setTableData] = useState({
 		columns
 	});
+	const [rows, setRows] = useState([]);
 	const [totalBalance, setTotalBalance] = useState(0);
 	const [openModal, setOpenModal] = useState(false);
 	const [openDelModal, setOpenDelModal] = useState(false);
 	const [checkboxes, setCheckboxes] = useState([]);
 
 	const [rule, setRule] = useState([[10000, 30]]);
+	const [rowsPerPage, setRowsPerPage] = useState(5);
+	const [page, setPage] = useState(0);
+	const [numSelected, setNumSelected] = useState(0);
+	const [selected, setSelected] = React.useState([]);
 
+	const onSelectAllClick = () => {
+
+	}
+	const handleClick = (event, id) => {
+		const selectedIndex = selected.indexOf(id);
+		let newSelected = [];
+	
+		if (selectedIndex === -1) {
+		  newSelected = newSelected.concat(selected, id);
+		} else if (selectedIndex === 0) {
+		  newSelected = newSelected.concat(selected.slice(1));
+		} else if (selectedIndex === selected.length - 1) {
+		  newSelected = newSelected.concat(selected.slice(0, -1));
+		} else if (selectedIndex > 0) {
+		  newSelected = newSelected.concat(
+			selected.slice(0, selectedIndex),
+			selected.slice(selectedIndex + 1),
+		  );
+		}
+	
+		setSelected(newSelected);
+	};
+	const handleSelectAllClick = (event) => {
+		if (event.target.checked) {
+		  const newSelecteds = (rowsPerPage > 0 ? rows.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage) : rows).map((n) => n.id);
+		  setSelected(newSelecteds);
+		  return;
+		}
+		setSelected([]);
+	};
+	const isSelected = (id) => selected.indexOf(id) !== -1;
+
+	const handleChangePage = (event, newPage) => {
+		setPage(newPage);
+		localStorage.setItem('pagination_status', JSON.stringify({page: newPage, rowsPerPage}));
+	};
+
+	const handleChangeRowsPerPage = (event) => {
+		const value = parseInt(event.target.value, 10);
+		setRowsPerPage(value);
+		setPage(0);
+		localStorage.setItem('pagination_status', JSON.stringify({page: 0, rowsPerPage: value}));
+	};
 	const updateTable = () => {
 	  	setLoading(true);
 	  	axios.get(process.env.REACT_APP_BACKEND_API + '/api/scholars').then(res => {
@@ -136,9 +185,11 @@ const Axie = (props) => {
 				if(item_row["scholar"]) scholar += item_row["scholar"]*1;
 				if(item_row["last_paid_date"] && latest < item_row["last_paid_date"]) latest = item_row["last_paid_date"]; 
 		  		ROW.push(item_row);
+				
 			})
 			dispatch({type: "SET_SUMMARY", payload: {total, manager, scholar, accounts: ROW.length, latest}});
 			setTableData({ ...tableData, rows: ROW });
+			setRows(ROW);
 			setCheckboxes([]);
 			setLoading(false);
 	  	}).catch(err=>{
@@ -159,6 +210,11 @@ const Axie = (props) => {
 			else if(msg=="refresh") updateTable();
 	  	});
 	  	updateTable();
+		if(localStorage.getItem('pagination_status')) {
+			const tt = JSON.parse(localStorage.getItem('pagination_status'));
+			setPage(tt.page);
+			setRowsPerPage(tt.rowsPerPage);
+		}
 	},[]);
 
 	const onNewClick = () => {
@@ -232,14 +288,14 @@ const Axie = (props) => {
 	  	setOpenDelModal(false);
 	}
 	const onPayClick = () => {
-		axios.post(process.env.REACT_APP_BACKEND_API + '/api/pay', {addresses: checkboxes}).then(res => {
+		axios.post(process.env.REACT_APP_BACKEND_API + '/api/pay', {addresses: rows.filter(row=>selected.indexOf(row.id) !== -1).map(row=>row.address)}).then(res => {
 			updateTable();
 	  	}).catch(err => {
 			console.log(err);
 	  	})
 	}
 	const onClaimClick = () => {
-	  	axios.post(process.env.REACT_APP_BACKEND_API + '/api/claim', {addresses: checkboxes}).then(res=> {
+	  	axios.post(process.env.REACT_APP_BACKEND_API + '/api/claim', {addresses: rows.filter(row=>selected.indexOf(row.id) !== -1).map(row=>row.address)}).then(res=> {
 			updateTable();
 	  	}).catch(err=>{
 			console.log(err);
@@ -260,6 +316,8 @@ const Axie = (props) => {
 		rule[idx][i] = v;
 		setRule([...rule]);
 	}
+	const selectedLength = (rowsPerPage > 0 ? rows.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage) : rows).map(row=>(selected.indexOf(row.id) !== -1 ? 1: 0)).reduce((a, b)=> a + b, 0);
+	const rowCount = (rowsPerPage > 0 ? rows.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage) : rows).length;
 	return (
 	  <Fragment>
 		<ToastContainer autoClose={2000} />
@@ -304,7 +362,7 @@ const Axie = (props) => {
 			className="text-center"
 		  />: 
 		  <div style={{marginBottom: '30px'}}>
-		   <MDBDataTableV5
+		   {/* <MDBDataTableV5
 			hover
 			striped
 			entriesOptions={[5, 20, 25]}
@@ -334,8 +392,72 @@ const Axie = (props) => {
 			}}
 			multipleCheckboxes
 			
-		  />
-		  
+		  /> */}
+		  	{/* <DataGrid
+				rows={rows}
+				columns={columns}
+				pageSize={5}
+				rowsPerPageOptions={[5]}
+				checkboxSelection
+				/>
+				 */}
+				 
+			<TableContainer component={Paper}>
+				<Table sx={{ minWidth: 650 }} aria-label="simple table">
+					<TableHead>
+					<TableRow>
+						<TableCell padding="checkbox">
+							<Checkbox
+								color="primary"
+								indeterminate={selectedLength > 0 && selectedLength < rowCount}
+								checked={rowCount > 0 && selectedLength >= rowCount}
+								onChange={handleSelectAllClick}
+								inputProps={{
+								'aria-label': 'select all desserts',
+								}}
+							/>
+						</TableCell>
+						{columns.map(col => (
+							<TableCell key={col.field} style={{ width: col.width }}>{col.label}</TableCell>
+						))}
+					</TableRow>
+					</TableHead>
+					<TableBody>
+					{(rowsPerPage > 0 ? rows.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage) : rows).map((row, index) => {
+						const isItemSelected = isSelected(row.id);
+						const labelId = `enhanced-table-checkbox-${index}`;
+						return (
+						<TableRow
+						key={row.id}
+						sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
+						>
+							<TableCell padding="checkbox">
+								<Checkbox
+								color="primary"
+								checked={isItemSelected}
+								inputProps={{
+									'aria-labelledby': labelId,
+								}}
+								onClick={(event) => handleClick(event, row.id)}
+								/>
+							</TableCell>
+						{columns.map(col=>(
+							<TableCell  key={col.field} >{row[col.field]}</TableCell>
+						))}
+						</TableRow>
+					)})}
+					</TableBody>
+				</Table>
+			</TableContainer>
+			<TablePagination
+				rowsPerPageOptions={[5, 10, 25, { value: -1, label: 'All' }]}
+				component="div"
+				count={rows.length}
+				rowsPerPage={rowsPerPage}
+				page={page}
+				onPageChange={handleChangePage}
+				onRowsPerPageChange={handleChangeRowsPerPage}
+			/>
 		  </div>
 		}
 		
@@ -352,7 +474,7 @@ const Axie = (props) => {
 			  <MDBBtn color="primary" style={{borderRadius: '50%', 'border': '2px solid white', padding: '6px 12px', marginTop: '25px'}} onClick={onAddRule}> <MDBIcon fab={false} icon="plus"/> </MDBBtn>
 			  {rule.map((row, idx) => {
 				  return (
-				<div class="row" style={((idx == 0 && totalBalance < row[0]) || (idx != 0 && totalBalance < row[0] && totalBalance >= rule[idx-1][0])) ? {backgroundColor: 'wheat'}: {}}>
+				<div key={idx} class="row" style={((idx == 0 && totalBalance < row[0]) || (idx != 0 && totalBalance < row[0] && totalBalance >= rule[idx-1][0])) ? {backgroundColor: 'wheat'}: {}}>
 					<div class="col-3">
 						<MDBBtn color="warning" style={{borderRadius: '50%', 'border': '2px solid white', padding: '6px 12px', marginTop: '34px', marginLeft: '40px'}} onClick={()=>{onDelRule(idx)}} > <MDBIcon fab={false} icon="times"/> {idx}</MDBBtn>
 					</div>
