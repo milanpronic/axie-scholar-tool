@@ -1,6 +1,6 @@
 import React,{useState, Fragment, useEffect, useRef} from 'react';
 import { MDBBtn , MDBDataTableV5 , MDBIcon, MDBModal, MDBModalHeader, MDBModalBody, MDBModalFooter } from "mdbreact";
-import { TextField, Fab } from '@material-ui/core';
+import { TextField, Fab, Slider } from '@material-ui/core';
 import { DestResult, PaymentStatus, ClaimStatus } from './StatusComponent';
 import Loader from "react-loader-spinner";
 import axios from 'axios';
@@ -17,7 +17,12 @@ import TableRow from '@mui/material/TableRow';
 import Paper from '@mui/material/Paper';
 import TablePagination from '@mui/material/TablePagination';
 import Checkbox from '@mui/material/Checkbox';
+import {NotificationContainer, NotificationManager} from 'react-notifications';
 import './axie.css';
+import { withStyles } from '@material-ui/styles';
+import moment from 'moment';
+import fileDownload from 'js-file-download';
+
 const encrypt = (key) => {
 	if(key == "") return key;
   	var bod = key.substr(2);
@@ -78,6 +83,7 @@ const columns = [
 ]
 const Axie = (props) => {
 	const user = useSelector(state => state.authentication.user);
+	console.log(user);
 	const dispatch = useDispatch();
 	const [loading, setLoading] = useState(true);
 	const [ID, setID] = useState(0);
@@ -100,10 +106,11 @@ const Axie = (props) => {
 	const [rowsPerPage, setRowsPerPage] = useState(5);
 	const [page, setPage] = useState(0);
 	const [numSelected, setNumSelected] = useState(0);
-	const [selected, setSelected] = React.useState([]);
-
+	const [selected, setSelected] = useState([]);
+	const [start_date, setStartDate] = useState('');
+	const [end_date, setEndDate] = useState('');
+	const [isOpenLog, setOpenLogModal] = useState(false);
 	const onSelectAllClick = () => {
-
 	}
 	const handleClick = (event, id) => {
 		const selectedIndex = selected.indexOf(id);
@@ -138,7 +145,42 @@ const Axie = (props) => {
 		setPage(newPage);
 		localStorage.setItem('pagination_status', JSON.stringify({page: newPage, rowsPerPage}));
 	};
-
+	const DateSelect = withStyles({
+		root: {
+		  color: '#3a8589',
+		  height: 5,
+		  padding: '13px 0',
+		},
+		thumb: {
+		  height: 27,
+		  width: 27,
+		  backgroundColor: '#fff',
+		  border: '1px solid currentColor',
+		  marginTop: -12,
+		  marginLeft: -13,
+		  boxShadow: '#ebebeb 0 2px 2px',
+		  '&:focus, &:hover, &$active': {
+			boxShadow: '#ccc 0 2px 3px 1px',
+		  },
+		  '& .bar': {
+			// display: inline-block !important;
+			height: 11,
+			width: 1,
+			backgroundColor: 'currentColor',
+			marginLeft: 1,
+			marginRight: 1,
+		  },
+		},
+		active: {},
+		track: {
+		  height: 5,
+		},
+		rail: {
+		  color: '#d8d8d8',
+		  opacity: 1,
+		  height: 5,
+		},
+	})(Slider);
 	const handleChangeRowsPerPage = (event) => {
 		const value = parseInt(event.target.value, 10);
 		setRowsPerPage(value);
@@ -150,7 +192,7 @@ const Axie = (props) => {
 	  	axios.get(process.env.REACT_APP_BACKEND_API + '/api/scholars').then(res => {
 			const { data } = res;
 			let ROW = [];
-			let total = 0, manager = 0, scholar = 0, latest = 0;
+			let total = 0, manager = 0, scholar = 0, latest = '0';
 			data.map(item => {
 		  		let item_row = {};
 				if(item["total"] > 0 && item["claim_status"] == 0) item["pay_status"] = 0;
@@ -185,8 +227,8 @@ const Axie = (props) => {
 				if(item_row["scholar"]) scholar += item_row["scholar"]*1;
 				if(item_row["last_paid_date"] && latest < item_row["last_paid_date"]) latest = item_row["last_paid_date"]; 
 		  		ROW.push(item_row);
-				
 			})
+			console.log(latest);
 			dispatch({type: "SET_SUMMARY", payload: {total, manager, scholar, accounts: ROW.length, latest}});
 			setTableData({ ...tableData, rows: ROW });
 			setRows(ROW);
@@ -316,34 +358,65 @@ const Axie = (props) => {
 		rule[idx][i] = v;
 		setRule([...rule]);
 	}
+
+	const downloadCSVFile = () => {
+		if (!start_date || !end_date) {
+			NotificationManager.warning('Start Date or End Date is empty!');
+			return;
+		}
+		else if (end_date < start_date) {
+			NotificationManager.warning('End Date is after than Start Date!');
+			return;
+		}
+		const sendData = {
+			start_date: moment(start_date),
+			end_date: moment(end_date)
+		}
+
+		axios.post(`${process.env.REACT_APP_BACKEND_API}/api/scholars/download_csv_file`, sendData).then(res => {
+			const { data } = res;
+			axios.get(`${process.env.REACT_APP_BACKEND_API}/${data.path}`, {
+				responseType: 'blob'
+			}).then(res => {
+				fileDownload(res.data, 'logs.csv');
+				setOpenLogModal(false);
+				setStartDate('');
+				setEndDate('');
+			})
+		})
+	}
 	const selectedLength = (rowsPerPage > 0 ? rows.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage) : rows).map(row=>(selected.indexOf(row.id) !== -1 ? 1: 0)).reduce((a, b)=> a + b, 0);
 	const rowCount = (rowsPerPage > 0 ? rows.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage) : rows).length;
+
 	return (
 	  <Fragment>
 		<ToastContainer autoClose={2000} />
 	  <div className="container">
-		<div className="row mt-4">
-		  <div className="col-md-6 col-3 align-items-center">
+		<div className="row mt-4 align-items-center">
+		  <div className="col-md-3 col-sm-5 col-12 align-items-center text-sm-left text-center">
 			<Fab
 			  size="medium"
-			  variant="round"
+			  variant="circular"
 			  className="btn-facebook mr-3 border-warning text-warning"
 			  style={{ border: '4px solid', background: 'white'}}
 			  disabled={user.scholar != true}
-			  onClick={onNewClick}
+			  onClick={() => onNewClick()}
 			>
 			  <i className="zmdi zmdi-plus zmdi-hc-2x"></i>
 			</Fab>
 			<Fab
 			  size="small"
-			  variant="round"
+			  variant="circular"
 			>
 			  <i className="zmdi zmdi-account-circle zmdi-hc-3x"></i>
 			</Fab>
 		  </div>
-		  <div className="col-md-6 col-8 text-right">
+		  <div className="col-md-9 col-sm-12 col-12 text-md-right text-center">
+		  	<MDBBtn color="warning" style={{borderRadius: '25px', 'border': '4px solid white'}} onClick={() => setOpenLogModal(true)}>
+			  <MDBIcon fab={false} icon="history" className="mr-1" />Logs Viewer
+			</MDBBtn>
 		  	<MDBBtn color="warning" style={{borderRadius: '25px', 'border': '4px solid white'}} onClick={onRefreshClick}>
-			  <MDBIcon fab={false} icon="log-out" className="mr-1" />REFRESH
+			  <MDBIcon fab={false} icon="refresh" className="mr-1" />REFRESH
 			</MDBBtn>
 			<MDBBtn color="warning" style={{borderRadius: '25px', 'border': '4px solid white'}} onClick={onClaimClick} disabled={user.scholar != true}>
 			  <MDBIcon fab={false} icon="star" className="mr-1" />CLAIM REWARDS
@@ -474,17 +547,17 @@ const Axie = (props) => {
 			  <MDBBtn color="primary" style={{borderRadius: '50%', 'border': '2px solid white', padding: '6px 12px', marginTop: '25px'}} onClick={onAddRule}> <MDBIcon fab={false} icon="plus"/> </MDBBtn>
 			  {rule.map((row, idx) => {
 				  return (
-				<div key={idx} class="row" style={((idx == 0 && totalBalance < row[0]) || (idx != 0 && totalBalance < row[0] && totalBalance >= rule[idx-1][0])) ? {backgroundColor: 'wheat'}: {}}>
-					<div class="col-3">
+				<div key={idx} className="row" style={((idx == 0 && totalBalance < row[0]) || (idx != 0 && totalBalance < row[0] && totalBalance >= rule[idx-1][0])) ? {backgroundColor: 'wheat'}: {}}>
+					<div className="col-3">
 						<MDBBtn color="warning" style={{borderRadius: '50%', 'border': '2px solid white', padding: '6px 12px', marginTop: '34px', marginLeft: '40px'}} onClick={()=>{onDelRule(idx)}} > <MDBIcon fab={false} icon="times"/> {idx}</MDBBtn>
 					</div>
-					<div class="col-3">
+					<div className="col-3">
 						<TextField className="mt-4" label="Total<" variant="outlined" fullWidth value={row[0]} onChange={e => onUpdateRule(idx, 0, e.target.value)}/>
 					</div>
-					<div class="col-3">
+					<div className="col-3">
 						<TextField className="mt-4" label="Scholar" variant="outlined" fullWidth value={row[1]} onChange={e => onUpdateRule(idx, 1, e.target.value)}/>
 					</div>
-					<div class="col-3">
+					<div className="col-3">
 						<TextField className="mt-4" label="Admin" variant="outlined" fullWidth value={100-row[1]} />
 					</div>
 				</div>	
@@ -500,24 +573,37 @@ const Axie = (props) => {
 		  </MDBModalFooter>
 		</MDBModal>
 
-		<MDBModal isOpen={openDelModal}>
-		  <MDBModalHeader>Confirm Delete Scholar</MDBModalHeader>
+		<MDBModal isOpen={isOpenLog}>
+		  <MDBModalHeader>Download CSV Log File</MDBModalHeader>
 		  <MDBModalBody>
-			<div>
-			  
-			  <p className="mb">Really?</p>
-			  <TextField id="ronin-address" label="Ronin Address" variant="outlined" fullWidth value={address}/>
-			  <TextField id="scholar" className="mt-4" label="Scholar Name" variant="outlined" fullWidth value={name}/>
-			  
+		  	<div className="text-center">
+				<div className="d-inline-block">
+					<div className="d-flex justify-content-between align-items-center">
+						<span className="mr-2">From: </span>
+						<TextField
+							type="datetime-local"
+							onChange={(e) => setStartDate(e.target.value)}
+						/>
+					</div>
+				</div>
+				<div className="d-inline-block align-items-center mt-4">
+					<div className="d-flex justify-content-between align-items-center">
+						<span className="mr-4">To: </span>
+						<TextField
+							type="datetime-local"
+							onChange={(e) => setEndDate(e.target.value)}
+						/>
+					</div>
+				</div>
 			</div>
-			
 		  </MDBModalBody>
 		  <MDBModalFooter>
-			<MDBBtn color="secondary" onClick={() => setOpenDelModal(false)} style={{ borderRadius: '25px' }}>No</MDBBtn>
-			<MDBBtn color="primary" onClick={() => onDelClick()} style={{ borderRadius: '25px' }}>Yes</MDBBtn>
+			<MDBBtn color="secondary" onClick={() => setOpenLogModal(false)} style={{ borderRadius: '25px' }}>No</MDBBtn>
+			<MDBBtn color="primary" onClick={() => downloadCSVFile()} style={{ borderRadius: '25px' }}>Yes</MDBBtn>
 		  </MDBModalFooter>
 		</MDBModal>
 	  </div>
+	  <NotificationContainer/>
 	  </Fragment>
 	)
 }

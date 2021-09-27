@@ -4,11 +4,11 @@ import Banner from './Banner';
 
 function AxiePage() {
     return (
-        <>
-        <Header/>
-        <Banner/>
-        <Axie />
-        </>
+        <div>
+            <Header/>
+            <Banner/>
+            <Axie />
+        </div>
     )
 }
 

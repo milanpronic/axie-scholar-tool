@@ -5,7 +5,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { userActions } from '../_actions';
 import backImg from '../img/back.jpeg';
 
-function LoginPage() {
+function LoginPage(props) {
     console.log(111);
     const [inputs, setInputs] = useState({
         username: '',
@@ -15,7 +15,7 @@ function LoginPage() {
     const { username, password } = inputs;
     const loggingIn = useSelector(state => state.authentication.loggingIn);
     const dispatch = useDispatch();
-    const location = useLocation();
+    const location = props.location;
 
     // reset login status
     useEffect(() => { 
@@ -37,37 +37,40 @@ function LoginPage() {
             dispatch(userActions.login(username, password, from));
         }
     }
-
     return (
         <div style={{ backgroundImage: `url(${backImg})`, position: 'fixed', left: '0', right: '0', top: '0', bottom: '0', backgroundSize: 'cover' }}>
         <div className="container">
-            <div className="jumbotron" style={{marginTop: '100px'}}>
-                <div className="col-md-8 offset-md-2">
-                    <div className="col-lg-8 offset-lg-2">
-                        <h2>Login</h2>
-                        <form name="form" onSubmit={handleSubmit}>
-                            <div className="form-group">
-                                <label>Username</label>
-                                <input type="text" name="username" value={username} onChange={handleChange} className={'form-control' + (submitted && !username ? ' is-invalid' : '')} />
-                                {submitted && !username &&
-                                    <div className="invalid-feedback">Username is required</div>
-                                }
+            <div className="row">
+                <div className="col-md-6 m-auto">
+                    <div className="jumbotron" style={{marginTop: '100px'}}>
+                        <div className="col-md-12">
+                            <div className="col-lg-12">
+                                <h2>Login</h2>
+                                <form name="form" onSubmit={handleSubmit}>
+                                    <div className="form-group">
+                                        <label>Username</label>
+                                        <input type="text" name="username" value={username} onChange={handleChange} className={'form-control' + (submitted && !username ? ' is-invalid' : '')} />
+                                        {submitted && !username &&
+                                            <div className="invalid-feedback">Username is required</div>
+                                        }
+                                    </div>
+                                    <div className="form-group">
+                                        <label>Password</label>
+                                        <input type="password" name="password" value={password} onChange={handleChange} className={'form-control' + (submitted && !password ? ' is-invalid' : '')} />
+                                        {submitted && !password &&
+                                            <div className="invalid-feedback">Password is required</div>
+                                        }
+                                    </div>
+                                    <div className="form-group">
+                                        <button type="submit" className="btn btn-primary">
+                                            {loggingIn && <span className="spinner-border spinner-border-sm mr-1"></span>}
+                                            Login
+                                        </button>
+                                        <Link to="/register" className="btn btn-link">Register</Link>
+                                    </div>
+                                </form>
                             </div>
-                            <div className="form-group">
-                                <label>Password</label>
-                                <input type="password" name="password" value={password} onChange={handleChange} className={'form-control' + (submitted && !password ? ' is-invalid' : '')} />
-                                {submitted && !password &&
-                                    <div className="invalid-feedback">Password is required</div>
-                                }
-                            </div>
-                            <div className="form-group">
-                                <button className="btn btn-primary">
-                                    {loggingIn && <span className="spinner-border spinner-border-sm mr-1"></span>}
-                                    Login
-                                </button>
-                                <Link to="/register" className="btn btn-link">Register</Link>
-                            </div>
-                        </form>
+                        </div>
                     </div>
                 </div>
             </div>

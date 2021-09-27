@@ -8,7 +8,11 @@ const Banner = () => {
     const scholar = useSelector(state=>state.summary.scholar);
     const accounts = useSelector(state=>state.summary.accounts);
     const latest = useSelector(state=>{
+        console.log('date-time=>',state);
         const dd = new Date(state.summary.latest);
+        if (state.summary.latest == '0') {
+            return {date: '---- / -- / --', time: '-- : -- : --'};
+        }
         return {date: dd.getFullYear() + "/" + (dd.getMonth()+1) + "/" + dd.getDate(), time: dd.getHours() + ":" + dd.getMinutes() + ":" + dd.getSeconds()};
     });
     const [rate, setRate] = useState(0);

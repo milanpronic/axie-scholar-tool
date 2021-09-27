@@ -16,6 +16,7 @@ import { PrivateRoute } from './_components';
 import { AxiePage, AdminPage } from './HomePage';
 import { LoginPage } from './LoginPage';
 import { RegisterPage } from './RegisterPage';
+import 'react-notifications/lib/notifications.css';
 
 function App() {
   const alert = useSelector(state => state.alert);
@@ -34,7 +35,6 @@ function App() {
               <PrivateRoute exact path="/admin" component={AdminPage} />
               <Route path="/login" component={LoginPage} />
               <Route path="/register" component={RegisterPage} />
-              <Redirect from="*" to="/" />
           </Switch>
       </Router>
   );
