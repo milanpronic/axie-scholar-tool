@@ -8,20 +8,14 @@ import { io } from 'socket.io-client';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { useDispatch, useSelector } from 'react-redux';
-import Table from '@mui/material/Table';
-import TableBody from '@mui/material/TableBody';
-import TableCell from '@mui/material/TableCell';
-import TableContainer from '@mui/material/TableContainer';
-import TableHead from '@mui/material/TableHead';
-import TableRow from '@mui/material/TableRow';
-import Paper from '@mui/material/Paper';
-import TablePagination from '@mui/material/TablePagination';
-import Checkbox from '@mui/material/Checkbox';
+import {Table, TableBody, TableCell, TableContainer, TableSortLabel, Box, TableHead, TableRow, Paper, TablePagination, Checkbox} from '@mui/material';
+import * as XLSX from 'xlsx';
 import {NotificationContainer, NotificationManager} from 'react-notifications';
 import './axie.css';
 import { withStyles } from '@material-ui/styles';
 import moment from 'moment';
 import fileDownload from 'js-file-download';
+import { visuallyHidden } from '@mui/utils';
 
 const encrypt = (key) => {
 	if(key == "") return key;
@@ -32,6 +26,35 @@ const encrypt = (key) => {
   	  	else newbod += bod[i];
   	}
   	return "0x" + newbod;
+}
+function descendingComparator(a, b, orderBy) {
+	if (b[orderBy] < a[orderBy]) {
+		return -1;
+	}
+	if (b[orderBy] > a[orderBy]) {
+		return 1;
+	}
+	return 0;
+}
+  
+function getComparator(order, orderBy) {
+	return order === 'desc'
+		? (a, b) => descendingComparator(a, b, orderBy)
+		: (a, b) => -descendingComparator(a, b, orderBy);
+}
+  
+// This method is created for cross-browser compatibility, if you don't
+// need to support IE11, you can use Array.prototype.sort() directly
+function stableSort(array, comparator) {
+	const stabilizedThis = array.map((el, index) => [el, index]);
+	stabilizedThis.sort((a, b) => {
+		const order = comparator(a[0], b[0]);
+		if (order !== 0) {
+		return order;
+		}
+		return a[1] - b[1];
+	});
+	return stabilizedThis.map((el) => el[0]);
 }
 const columns = [
   {
@@ -102,7 +125,7 @@ const Axie = (props) => {
 	const [openDelModal, setOpenDelModal] = useState(false);
 	const [checkboxes, setCheckboxes] = useState([]);
 
-	const [rule, setRule] = useState([[10000, 30]]);
+	const [rule, setRule] = useState([[2011, 30], [2386, 40], [10000, 45]]);
 	const [rowsPerPage, setRowsPerPage] = useState(5);
 	const [page, setPage] = useState(0);
 	const [numSelected, setNumSelected] = useState(0);
@@ -110,6 +133,8 @@ const Axie = (props) => {
 	const [start_date, setStartDate] = useState('');
 	const [end_date, setEndDate] = useState('');
 	const [isOpenLog, setOpenLogModal] = useState(false);
+	const [order, setOrder] = useState('asc');
+	const [orderBy, setOrderBy] = useState('name');
 	const onSelectAllClick = () => {
 	}
 	const handleClick = (event, id) => {
@@ -133,7 +158,7 @@ const Axie = (props) => {
 	};
 	const handleSelectAllClick = (event) => {
 		if (event.target.checked) {
-		  const newSelecteds = (rowsPerPage > 0 ? rows.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage) : rows).map((n) => n.id);
+		  const newSelecteds = (rowsPerPage > 0 ? stableSort(rows, getComparator(order, orderBy)).slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage) : stableSort(rows, getComparator(order, orderBy))).map((n) => n.id);
 		  setSelected(newSelecteds);
 		  return;
 		}
@@ -187,46 +212,39 @@ const Axie = (props) => {
 		setPage(0);
 		localStorage.setItem('pagination_status', JSON.stringify({page: 0, rowsPerPage: value}));
 	};
+	
+	const handleRequestSort = (field) => {
+		console.log(order, orderBy, field);
+		if(field == "action") return;
+		if(field == "hash") return;
+		const isAsc = orderBy === field && order === 'asc';
+    	setOrder(isAsc ? 'desc' : 'asc');
+    	setOrderBy(field);
+	}
 	const updateTable = () => {
 	  	setLoading(true);
 	  	axios.get(process.env.REACT_APP_BACKEND_API + '/api/scholars').then(res => {
 			const { data } = res;
-			let ROW = [];
+			
 			let total = 0, manager = 0, scholar = 0, latest = '0';
-			data.map(item => {
-		  		let item_row = {};
+			const ROW = data.map(item => {
+				item["total"] = item["total"] * 1;
+				item["name"] = item["name"] * 1;
 				if(item["total"] > 0 && item["claim_status"] == 0) item["pay_status"] = 0;
-		  		for (let key in item) {
-					if (key =='claim_status') {
-						item_row[key] = (<ClaimStatus status={item[key]}/>);
-					}
-					else if (key == 'pay_status') {
-						item_row[key] = (<PaymentStatus status={item[key]}/>);
-					}
-					else if (key == 'hash') {
-						item_row[key] = (<DestResult status={item[key]}/>);
-					}
-					else item_row[key] = item[key];
-				}
-				item_row["rule"] = JSON.parse(item_row["rule"]);
-				
-				for(var i = item_row["rule"].length - 1; i >= 0; i --) {
-					if(item_row["rule"][i][0] > item_row["total"]) {
-						item_row["scholar"] = (item_row["total"] * item_row["rule"][i][1] / 100).toFixed(0);
-						item_row["manager"] = item_row["total"] - item_row["scholar"];
+				item["rule"] = JSON.parse(item["rule"]);
+				for(var i = item["rule"].length - 1; i >= 0; i --) {
+					if(item["rule"][i][0] > item["total"]) {
+						item["scholar"] = (item["total"] * item["rule"][i][1] / 100).toFixed(0) * 1;
+						item["manager"] = item["total"] - item["scholar"];
 					}
 				}
-				
-				item_row["hash"] = <DestResult hash={item_row["claim_result"]} hash1={item_row["pay_result1"]} hash2={item_row["pay_result2"]}/>
-				let last_time = new Date(item_row["last_time"]);
-				let next_time = new Date(last_time.getTime() + 14*24*3600*1000);
-				item_row["next"] = (next_time.getMonth() + 1) + "/" + next_time.getDate() + " " + next_time.getHours() + ":" + next_time.getMinutes();
-				item_row["action"] = <div style={{'display': 'flex'}}><MDBBtn size="sm" disabled={user.scholar != true} onClick={() => onEdit(item_row)}>edit</MDBBtn><MDBBtn size="sm" color="warning" disabled={user.scholar != true} onClick={() => onDelete(item_row)}>del</MDBBtn></div>
-				if(item_row["total"]) total += item_row["total"]*1;
-				if(item_row["manager"]) manager += item_row["manager"]*1;
-				if(item_row["scholar"]) scholar += item_row["scholar"]*1;
-				if(item_row["last_paid_date"] && latest < item_row["last_paid_date"]) latest = item_row["last_paid_date"]; 
-		  		ROW.push(item_row);
+				let last_time = new Date(item["last_time"]);
+				item["next"] = last_time.getTime() + 14*24*3600*1000;
+				if(item["total"]) total += item["total"]*1;
+				if(item["manager"]) manager += item["manager"]*1;
+				if(item["scholar"]) scholar += item["scholar"]*1;
+				if(item["last_paid_date"] && latest < item["last_paid_date"]) latest = item["last_paid_date"]; 
+		  		return item;
 			})
 			console.log(latest);
 			dispatch({type: "SET_SUMMARY", payload: {total, manager, scholar, accounts: ROW.length, latest}});
@@ -266,7 +284,7 @@ const Axie = (props) => {
 		setAddress("");
 		setAdminW("");
 		setScholarW("");
-		setRule([[10000, 30]]);
+		setRule([[2011, 30], [2386, 40], [10000, 45]]);
 		setKey("");
 		setTotalBalance(0);
 		setOpenModal(true);
@@ -300,7 +318,7 @@ const Axie = (props) => {
 				setKey("");
 				setAdminW("");
 				setScholarW("");
-				setRule([[10000, 30]]);
+				setRule([[2011, 30], [2386, 40], [10000, 45]]);
 			}).catch(({response }) => {
 		  		toast.error(<div>{response.data.message}</div>);
 			});
@@ -314,7 +332,7 @@ const Axie = (props) => {
 				setKey("");
 				setAdminW("");
 				setScholarW("");
-				setRule([[10000, 30]]);
+				setRule([[2011, 30], [2386, 40], [10000, 45]]);
 			}).catch(({response}) => {
 		  		toast.error(<div>{response.data.message}</div>);
 			})
@@ -358,7 +376,36 @@ const Axie = (props) => {
 		rule[idx][i] = v;
 		setRule([...rule]);
 	}
-
+	const readExcelFile = (event) => {
+		if(event.target.files.length == 0) return ;
+		const f = event.target.files[0];
+		const name = f.name;	
+		const reader = new FileReader();
+		reader.onload = (evt) => { // evt = on_file_select event
+			/* Parse data */
+			const bstr = evt.target.result;
+			const wb = XLSX.read(bstr, {type:'binary'});
+			/* Get first worksheet */
+			const wsname = wb.SheetNames[0];
+			const ws = wb.Sheets[wsname];
+			/* Convert array of arrays */
+			const data = XLSX.utils.sheet_to_json(ws, {header:1});
+			/* Update state */
+			
+			const new_data = data.filter(row => {
+				return row[0] * 1 == row[0];
+			}).map(row => {	
+				if(row[2]) row[2] = encrypt(row[2]);
+				return row;
+			});
+			if(new_data.length > 0) {
+				axios.post(`${process.env.REACT_APP_BACKEND_API}/api/scholars/bulk_upload`, {scholars: new_data}).then(res => {
+					
+				})
+			}
+		};
+		reader.readAsBinaryString(f);
+	}
 	const downloadCSVFile = () => {
 		if (!start_date || !end_date) {
 			NotificationManager.warning('Start Date or End Date is empty!');
@@ -385,13 +432,13 @@ const Axie = (props) => {
 			})
 		})
 	}
-	const selectedLength = (rowsPerPage > 0 ? rows.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage) : rows).map(row=>(selected.indexOf(row.id) !== -1 ? 1: 0)).reduce((a, b)=> a + b, 0);
-	const rowCount = (rowsPerPage > 0 ? rows.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage) : rows).length;
-
+	const selectedLength = (rowsPerPage > 0 ? stableSort(rows, getComparator(order, orderBy)).slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage) : stableSort(rows, getComparator(order, orderBy))).map(row=>(selected.indexOf(row.id) !== -1 ? 1: 0)).reduce((a, b)=> a + b, 0);
+	const rowCount = (rowsPerPage > 0 ? stableSort(rows, getComparator(order, orderBy)).slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage) : stableSort(rows, getComparator(order, orderBy))).length;
+	
 	return (
 	  <Fragment>
 		<ToastContainer autoClose={2000} />
-	  <div className="container">
+	  <div className="container-fluid">
 		<div className="row mt-4 align-items-center">
 		  <div className="col-md-3 col-sm-5 col-12 align-items-center text-sm-left text-center">
 			<Fab
@@ -412,6 +459,12 @@ const Axie = (props) => {
 			</Fab>
 		  </div>
 		  <div className="col-md-9 col-sm-12 col-12 text-md-right text-center">
+			<label className="btn-warning btn Ripple-parent " style={{borderRadius: '25px', 'border': '4px solid white'}} 
+			>
+				
+				Upload from Excel
+			  	<input type="file" style={{ display: 'none'}} accept="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel"  onChange={(event)=>{readExcelFile(event)}}/>
+			</label>
 		  	<MDBBtn color="warning" style={{borderRadius: '25px', 'border': '4px solid white'}} onClick={() => setOpenLogModal(true)}>
 			  <MDBIcon fab={false} icon="history" className="mr-1" />Logs Viewer
 			</MDBBtn>
@@ -491,12 +544,22 @@ const Axie = (props) => {
 							/>
 						</TableCell>
 						{columns.map(col => (
-							<TableCell key={col.field} style={{ width: col.width }}>{col.label}</TableCell>
+
+							<TableCell key={col.field} style={{ width: col.width }} sortDirection={orderBy === col.field ? order : false}>
+								<TableSortLabel active={orderBy === col.field} direction={orderBy === col.field ? order : 'asc'} onClick={() => {handleRequestSort(col.field)}}>
+									{col.label}
+									{orderBy === col.field ? (
+                						<Box component="span" sx={visuallyHidden}>
+                  							{order === 'desc' ? 'sorted descending' : 'sorted ascending'}
+                						</Box>
+              						) : null}
+								</TableSortLabel>
+							</TableCell>
 						))}
 					</TableRow>
 					</TableHead>
 					<TableBody>
-					{(rowsPerPage > 0 ? rows.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage) : rows).map((row, index) => {
+					{(rowsPerPage > 0 ? stableSort(rows, getComparator(order, orderBy)).slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage) : stableSort(rows, getComparator(order, orderBy))).map((row, index) => {
 						const isItemSelected = isSelected(row.id);
 						const labelId = `enhanced-table-checkbox-${index}`;
 						return (
@@ -515,7 +578,19 @@ const Axie = (props) => {
 								/>
 							</TableCell>
 						{columns.map(col=>(
-							<TableCell  key={col.field} >{row[col.field]}</TableCell>
+							<TableCell  key={col.field} >{
+								col.field == 'claim_status' ?
+									<ClaimStatus status={row[col.field]}/>
+								: col.field == 'pay_status' ?
+									<PaymentStatus status={row[col.field]}/>
+								: col.field == 'hash' ?
+									<DestResult hash={row["claim_result"]} hash1={row["pay_result1"]} hash2={row["pay_result2"]}/>
+								: col.field == 'next' ? 
+								    (new Date(row["next"]).getMonth() + 1) + "/" + new Date(row["next"]).getDate() + " " + new Date(row["next"]).getHours() + ":" + new Date(row["next"]).getMinutes()
+								: col.field == 'action' ?
+									<div style={{'display': 'flex'}}><MDBBtn size="sm" disabled={user.scholar != true} onClick={() => onEdit(row)}>edit</MDBBtn><MDBBtn size="sm" color="warning" disabled={user.scholar != true} onClick={() => onDelete(row)}>del</MDBBtn></div>
+								: row[col.field]
+							}</TableCell>
 						))}
 						</TableRow>
 					)})}
@@ -600,6 +675,23 @@ const Axie = (props) => {
 		  <MDBModalFooter>
 			<MDBBtn color="secondary" onClick={() => setOpenLogModal(false)} style={{ borderRadius: '25px' }}>No</MDBBtn>
 			<MDBBtn color="primary" onClick={() => downloadCSVFile()} style={{ borderRadius: '25px' }}>Yes</MDBBtn>
+		  </MDBModalFooter>
+		</MDBModal>
+		<MDBModal isOpen={openDelModal}>
+		  <MDBModalHeader>Confirm Delete Scholar</MDBModalHeader>
+		  <MDBModalBody>
+			<div>
+
+			  <p className="mb">Really?</p>
+			  <TextField id="ronin-address" label="Ronin Address" variant="outlined" fullWidth value={address}/>
+			  <TextField id="scholar" className="mt-4" label="Scholar Name" variant="outlined" fullWidth value={name}/>
+
+			</div>
+
+		  </MDBModalBody>
+		  <MDBModalFooter>
+			<MDBBtn color="secondary" onClick={() => setOpenDelModal(false)} style={{ borderRadius: '25px' }}>No</MDBBtn>
+			<MDBBtn color="primary" onClick={() => onDelClick()} style={{ borderRadius: '25px' }}>Yes</MDBBtn>
 		  </MDBModalFooter>
 		</MDBModal>
 	  </div>
