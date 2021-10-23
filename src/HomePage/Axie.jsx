@@ -116,14 +116,13 @@ const Axie = (props) => {
 	const [admin_w, setAdminW] = useState("");
 	const [scholar_w, setScholarW] = useState("");
 	const [modaltype, setModaltype] = useState("new");
-	const [tableData, setTableData] = useState({
-		columns
-	});
+	
 	const [rows, setRows] = useState([]);
 	const [totalBalance, setTotalBalance] = useState(0);
 	const [openModal, setOpenModal] = useState(false);
 	const [openDelModal, setOpenDelModal] = useState(false);
-	const [checkboxes, setCheckboxes] = useState([]);
+	const [openBulkDelModal, setOpenBulkDelModal] = useState(false);
+	const [willDeleteIds, setWillDeleteIds] = useState("");
 
 	const [rule, setRule] = useState([[2011, 30], [2386, 40], [10000, 45]]);
 	const [rowsPerPage, setRowsPerPage] = useState(5);
@@ -224,39 +223,41 @@ const Axie = (props) => {
 	const updateTable = () => {
 	  	setLoading(true);
 	  	axios.get(process.env.REACT_APP_BACKEND_API + '/api/scholars').then(res => {
-			const { data } = res;
-			
-			let total = 0, manager = 0, scholar = 0, latest = '0';
-			const ROW = data.map(item => {
-				item["total"] = item["total"] * 1;
-				item["name"] = item["name"] * 1;
-				if(item["total"] > 0 && item["claim_status"] == 0) item["pay_status"] = 0;
-				item["rule"] = JSON.parse(item["rule"]);
-				for(var i = item["rule"].length - 1; i >= 0; i --) {
-					if(item["rule"][i][0] > item["total"]) {
-						item["scholar"] = (item["total"] * item["rule"][i][1] / 100).toFixed(0) * 1;
-						item["manager"] = item["total"] - item["scholar"];
-					}
-				}
-				let last_time = new Date(item["last_time"]);
-				item["next"] = last_time.getTime() + 14*24*3600*1000;
-				if(item["total"]) total += item["total"]*1;
-				if(item["manager"]) manager += item["manager"]*1;
-				if(item["scholar"]) scholar += item["scholar"]*1;
-				if(item["last_paid_date"] && latest < item["last_paid_date"]) latest = item["last_paid_date"]; 
-		  		return item;
-			})
-			console.log(latest);
-			dispatch({type: "SET_SUMMARY", payload: {total, manager, scholar, accounts: ROW.length, latest}});
-			setTableData({ ...tableData, rows: ROW });
-			setRows(ROW);
-			setCheckboxes([]);
+			onChangeScholars(res.data);
 			setLoading(false);
 	  	}).catch(err=>{
 			console.log("ERR");
 			setLoading(false);
 	  	})
 	}
+
+	const onChangeScholars = (scholars) => {
+		let total = 0, manager = 0, scholar = 0, latest = '0';
+		const ROW = scholars.map(item => {
+			item["total"] = item["total"] * 1;
+			item["name"] = item["name"] * 1;
+			if(item["total"] > 0 && item["claim_status"] == 0) item["pay_status"] = 0;
+			item["rule"] = typeof item["rule"] == "string" ? JSON.parse(item["rule"]): item["rule"];
+			for(var i = item["rule"].length - 1; i >= 0; i --) {
+				if(item["rule"][i][0] > item["total"]) {
+					item["scholar"] = (item["total"] * item["rule"][i][1] / 100).toFixed(0) * 1;
+					item["manager"] = item["total"] - item["scholar"];
+				}
+			}
+			if(item["last_time"]) {
+				let last_time = new Date(item["last_time"]);
+				item["next"] = last_time.getTime() + 14*24*3600*1000;
+			}
+			if(item["total"]) total += item["total"]*1;
+			if(item["manager"]) manager += item["manager"]*1;
+			if(item["scholar"]) scholar += item["scholar"]*1;
+			if(item["last_paid_date"] && latest < item["last_paid_date"]) latest = item["last_paid_date"]; 
+			return item;
+		})
+		console.log(latest);
+		dispatch({type: "SET_SUMMARY", payload: {total, manager, scholar, accounts: ROW.length, latest}});
+		setRows(ROW);
+	};
 
 	useEffect(() => {
 	  	const connect = io(process.env.REACT_APP_BACKEND_API, { transports: ["websocket"] });
@@ -361,6 +362,22 @@ const Axie = (props) => {
 			console.log(err);
 	  	})
 	}
+	const onBulkDelClick = () => {
+		setWillDeleteIds(rows.filter(row=>selected.indexOf(row.id) !== -1).map(row=>row.name).join(","));
+		setOpenBulkDelModal(true);
+	}
+	const onBulkDeleteClick = () => {
+		console.log(selected);
+		setLoading(true);
+		axios.delete(process.env.REACT_APP_BACKEND_API + '/api/scholars/' + JSON.stringify(selected)).then(res => {
+			onChangeScholars([...rows.filter(scholar=>selected.indexOf(scholar.id) == -1)]);
+			setLoading(false);
+	  	}).catch(err => {
+			console.log(err);
+			setLoading(false);
+	  	})
+	  	setOpenBulkDelModal(false);
+	}
 	const onRefreshClick = () => {
 		updateTable();
 	}
@@ -379,7 +396,6 @@ const Axie = (props) => {
 	const readExcelFile = (event) => {
 		if(event.target.files.length == 0) return ;
 		const f = event.target.files[0];
-		const name = f.name;	
 		const reader = new FileReader();
 		reader.onload = (evt) => { // evt = on_file_select event
 			/* Parse data */
@@ -399,8 +415,11 @@ const Axie = (props) => {
 				return row;
 			});
 			if(new_data.length > 0) {
+				setLoading(true);
 				axios.post(`${process.env.REACT_APP_BACKEND_API}/api/scholars/bulk_upload`, {scholars: new_data}).then(res => {
-					
+					onChangeScholars([...rows, ...res.data]);
+					setLoading(false);
+					event.target.files = null;
 				})
 			}
 		};
@@ -477,6 +496,9 @@ const Axie = (props) => {
 			<MDBBtn color="warning" style={{borderRadius: '25px', 'border': '4px solid white'}} onClick={()=>onPayClick()} disabled={user.scholar != true}>
 			  <MDBIcon fab={false} icon="log-out" className="mr-1" />PAY SCHOLARS
 			</MDBBtn>
+			<MDBBtn color="danger" style={{borderRadius: '25px', 'border': '4px solid white'}} onClick={()=>onBulkDelClick()} disabled={user.scholar != true}>
+			  <MDBIcon fab={false} icon="trash" className="mr-1" />Delete
+			</MDBBtn>
 		  </div>
 		</div>
 		{ loading ? 
@@ -488,46 +510,6 @@ const Axie = (props) => {
 			className="text-center"
 		  />: 
 		  <div style={{marginBottom: '30px'}}>
-		   {/* <MDBDataTableV5
-			hover
-			striped
-			entriesOptions={[5, 20, 25]}
-			entries={5}
-			pagesAmount={4}
-			data={tableData}
-			checkbox
-			headCheckboxID='id6'
-			bodyCheckboxID='checkboxes6'
-			getValueCheckBox={(e) => {
-				if(e.checked) {
-				  const cb = [...checkboxes];
-				  cb.push(e.address);
-				  setCheckboxes(cb);
-				} else {
-				  const cb = checkboxes.filter(addr => addr != e.address);
-				  setCheckboxes(cb);
-				}
-			}}
-			getValueAllCheckBoxes={(e) => {
-			  if(e.length && e[0].checked) {
-				const cb = e.map(row=>row.address);
-				setCheckboxes(cb);
-			  } else {
-				setCheckboxes([]);
-			  }
-			}}
-			multipleCheckboxes
-			
-		  /> */}
-		  	{/* <DataGrid
-				rows={rows}
-				columns={columns}
-				pageSize={5}
-				rowsPerPageOptions={[5]}
-				checkboxSelection
-				/>
-				 */}
-				 
 			<TableContainer component={Paper}>
 				<Table sx={{ minWidth: 650 }} aria-label="simple table">
 					<TableHead>
@@ -579,7 +561,10 @@ const Axie = (props) => {
 							</TableCell>
 						{columns.map(col=>(
 							<TableCell  key={col.field} >{
-								col.field == 'claim_status' ?
+
+								!row["total"] && col.field != "name" && col.field != "action" ? 
+									'...'
+								: col.field == 'claim_status' ?
 									<ClaimStatus status={row[col.field]}/>
 								: col.field == 'pay_status' ?
 									<PaymentStatus status={row[col.field]}/>
@@ -692,6 +677,22 @@ const Axie = (props) => {
 		  <MDBModalFooter>
 			<MDBBtn color="secondary" onClick={() => setOpenDelModal(false)} style={{ borderRadius: '25px' }}>No</MDBBtn>
 			<MDBBtn color="primary" onClick={() => onDelClick()} style={{ borderRadius: '25px' }}>Yes</MDBBtn>
+		  </MDBModalFooter>
+		</MDBModal>
+		<MDBModal isOpen={openBulkDelModal}>
+		  <MDBModalHeader>Confirm Bulk Delete Scholars</MDBModalHeader>
+		  <MDBModalBody>
+			<div>
+
+			  <p className="mb">Do you want to delete follows really?</p>
+			  <TextField className="mt-4" label="Scholar Names" variant="outlined" fullWidth value={willDeleteIds}/>
+
+			</div>
+
+		  </MDBModalBody>
+		  <MDBModalFooter>
+			<MDBBtn color="secondary" onClick={() => setOpenBulkDelModal(false)} style={{ borderRadius: '25px' }}>No</MDBBtn>
+			<MDBBtn color="primary" onClick={() => onBulkDeleteClick()} style={{ borderRadius: '25px' }}>Yes</MDBBtn>
 		  </MDBModalFooter>
 		</MDBModal>
 	  </div>
