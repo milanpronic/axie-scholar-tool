@@ -106,7 +106,6 @@ const columns = [
 ]
 const Axie = (props) => {
 	const user = useSelector(state => state.authentication.user);
-	console.log(user);
 	const dispatch = useDispatch();
 	const [loading, setLoading] = useState(true);
 	const [ID, setID] = useState(0);
@@ -222,13 +221,13 @@ const Axie = (props) => {
 	}
 	const updateTable = () => {
 	  	setLoading(true);
-	  	axios.get(process.env.REACT_APP_BACKEND_API + '/api/scholars').then(res => {
+	  	axios.get(process.env.REACT_APP_BACKEND_API + '/api/scholars?user=' + user.id).then(res => {
 			onChangeScholars(res.data);
-			setLoading(false);
 	  	}).catch(err=>{
 			console.log("ERR");
+	  	}).finally(()=>{
 			setLoading(false);
-	  	})
+		})
 	}
 
 	const onChangeScholars = (scholars) => {
@@ -309,44 +308,57 @@ const Axie = (props) => {
 		setOpenDelModal(true);
 	}
 	const onSaveClick = () => {
-		let postdata = {name, address, address1: admin_w, address2: scholar_w, rule};
+		let postdata = {name, address, address1: admin_w, address2: scholar_w, rule, user: user.id};
 		if(key != "") postdata["private"] = encrypt(key);
 	  	if(modaltype == "new") {
+			setLoading(true);
 			const res = axios.post(process.env.REACT_APP_BACKEND_API + '/api/scholars', postdata).then(res=>{
-				updateTable();
+				onChangeScholars([...rows, res.data]);
 				setName("");
 				setAddress("");
 				setKey("");
 				setAdminW("");
 				setScholarW("");
 				setRule([[2011, 30], [2386, 40], [10000, 45]]);
+				setOpenModal(false)
 			}).catch(({response }) => {
 		  		toast.error(<div>{response.data.message}</div>);
+			}).finally(() => {
+				setLoading(false);
 			});
-			console.log(res);
 	  	}
 	  	if(modaltype == "edit") {
+			setLoading(true);
 			axios.put(process.env.REACT_APP_BACKEND_API + '/api/scholars/' + ID, postdata).then(res=>{
-				updateTable();
+				const new_rows = rows.map(row => {
+					if(row.id == ID) return {...row, ...postdata, user_id: user.id};
+					return row;
+				})
+				onChangeScholars(new_rows);
 				setName("");
 				setAddress("");
 				setKey("");
 				setAdminW("");
 				setScholarW("");
 				setRule([[2011, 30], [2386, 40], [10000, 45]]);
+				setOpenModal(false)
 			}).catch(({response}) => {
 		  		toast.error(<div>{response.data.message}</div>);
+			}).finally(() => {
+				setLoading(false);
 			})
 	  	}
-	  	setOpenModal(false)
 	}
 	const onDelClick = () => {
+		setLoading(true);
 	  	axios.delete(process.env.REACT_APP_BACKEND_API + '/api/scholars/' + ID).then(res => {
-			updateTable();
+			onChangeScholars(rows.filter(row=> row.id != ID));
+			setOpenDelModal(false);	
 	  	}).catch(err => {
 			console.log(err);
-	  	})
-	  	setOpenDelModal(false);
+	  	}).finally(() => {
+			setLoading(false);
+		})
 	}
 	const onPayClick = () => {
 		axios.post(process.env.REACT_APP_BACKEND_API + '/api/pay', {addresses: rows.filter(row=>selected.indexOf(row.id) !== -1).map(row=>row.address)}).then(res => {
@@ -371,11 +383,11 @@ const Axie = (props) => {
 		setLoading(true);
 		axios.delete(process.env.REACT_APP_BACKEND_API + '/api/scholars/' + JSON.stringify(selected)).then(res => {
 			onChangeScholars([...rows.filter(scholar=>selected.indexOf(scholar.id) == -1)]);
-			setLoading(false);
 	  	}).catch(err => {
 			console.log(err);
+	  	}).finally(()=>{
 			setLoading(false);
-	  	})
+		})
 	  	setOpenBulkDelModal(false);
 	}
 	const onRefreshClick = () => {
@@ -416,7 +428,7 @@ const Axie = (props) => {
 			});
 			if(new_data.length > 0) {
 				setLoading(true);
-				axios.post(`${process.env.REACT_APP_BACKEND_API}/api/scholars/bulk_upload`, {scholars: new_data}).then(res => {
+				axios.post(`${process.env.REACT_APP_BACKEND_API}/api/scholars/bulk_upload`, {scholars: new_data, user: user.id}).then(res => {
 					onChangeScholars([...rows, ...res.data]);
 					setLoading(false);
 					event.target.files = null;
@@ -456,7 +468,6 @@ const Axie = (props) => {
 	
 	return (
 	  <Fragment>
-		<ToastContainer autoClose={2000} />
 	  <div className="container-fluid">
 		<div className="row mt-4 align-items-center">
 		  <div className="col-md-3 col-sm-5 col-12 align-items-center text-sm-left text-center">
@@ -465,7 +476,6 @@ const Axie = (props) => {
 			  variant="circular"
 			  className="btn-facebook mr-3 border-warning text-warning"
 			  style={{ border: '4px solid', background: 'white'}}
-			  disabled={user.scholar != true}
 			  onClick={() => onNewClick()}
 			>
 			  <i className="zmdi zmdi-plus zmdi-hc-2x"></i>
@@ -490,13 +500,13 @@ const Axie = (props) => {
 		  	<MDBBtn color="warning" style={{borderRadius: '25px', 'border': '4px solid white'}} onClick={onRefreshClick}>
 			  <MDBIcon fab={false} icon="refresh" className="mr-1" />REFRESH
 			</MDBBtn>
-			<MDBBtn color="warning" style={{borderRadius: '25px', 'border': '4px solid white'}} onClick={onClaimClick} disabled={user.scholar != true}>
+			<MDBBtn color="warning" style={{borderRadius: '25px', 'border': '4px solid white'}} onClick={onClaimClick}>
 			  <MDBIcon fab={false} icon="star" className="mr-1" />CLAIM REWARDS
 			</MDBBtn>
-			<MDBBtn color="warning" style={{borderRadius: '25px', 'border': '4px solid white'}} onClick={()=>onPayClick()} disabled={user.scholar != true}>
+			<MDBBtn color="warning" style={{borderRadius: '25px', 'border': '4px solid white'}} onClick={()=>onPayClick()}>
 			  <MDBIcon fab={false} icon="log-out" className="mr-1" />PAY SCHOLARS
 			</MDBBtn>
-			<MDBBtn color="danger" style={{borderRadius: '25px', 'border': '4px solid white'}} onClick={()=>onBulkDelClick()} disabled={user.scholar != true}>
+			<MDBBtn color="danger" style={{borderRadius: '25px', 'border': '4px solid white'}} onClick={()=>onBulkDelClick()}>
 			  <MDBIcon fab={false} icon="trash" className="mr-1" />Delete
 			</MDBBtn>
 		  </div>
@@ -514,7 +524,7 @@ const Axie = (props) => {
 				<Table sx={{ minWidth: 650 }} aria-label="simple table">
 					<TableHead>
 					<TableRow>
-						<TableCell padding="checkbox">
+						<TableCell style={{textAlign: 'center'}} padding="checkbox">
 							<Checkbox
 								color="primary"
 								indeterminate={selectedLength > 0 && selectedLength < rowCount}
@@ -549,7 +559,7 @@ const Axie = (props) => {
 						key={row.id}
 						sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
 						>
-							<TableCell padding="checkbox">
+							<TableCell style={{textAlign: 'center'}} padding="checkbox">
 								<Checkbox
 								color="primary"
 								checked={isItemSelected}
@@ -562,7 +572,7 @@ const Axie = (props) => {
 						{columns.map(col=>(
 							<TableCell  key={col.field} >{
 
-								!row["total"] && col.field != "name" && col.field != "action" ? 
+								!row["total"] && row["total"] != 0 && col.field != "name" && col.field != "action" ? 
 									'...'
 								: col.field == 'claim_status' ?
 									<ClaimStatus status={row[col.field]}/>
@@ -573,7 +583,7 @@ const Axie = (props) => {
 								: col.field == 'next' ? 
 								    (new Date(row["next"]).getMonth() + 1) + "/" + new Date(row["next"]).getDate() + " " + new Date(row["next"]).getHours() + ":" + new Date(row["next"]).getMinutes()
 								: col.field == 'action' ?
-									<div style={{'display': 'flex'}}><MDBBtn size="sm" disabled={user.scholar != true} onClick={() => onEdit(row)}>edit</MDBBtn><MDBBtn size="sm" color="warning" disabled={user.scholar != true} onClick={() => onDelete(row)}>del</MDBBtn></div>
+									<div style={{'display': 'flex'}}><MDBBtn size="sm" onClick={() => onEdit(row)}>edit</MDBBtn><MDBBtn size="sm" color="warning" onClick={() => onDelete(row)}>del</MDBBtn></div>
 								: row[col.field]
 							}</TableCell>
 						))}

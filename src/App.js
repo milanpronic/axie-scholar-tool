@@ -17,18 +17,29 @@ import { AxiePage, AdminPage } from './HomePage';
 import { LoginPage } from './LoginPage';
 import { RegisterPage } from './RegisterPage';
 import 'react-notifications/lib/notifications.css';
+import { ToastContainer, toast } from 'react-toastify';
 
 function App() {
   const alert = useSelector(state => state.alert);
-    const dispatch = useDispatch();
+  const dispatch = useDispatch();
 
-    useEffect(() => {
-        history.listen((location, action) => {
-            // clear alert on location change
-            dispatch(alertActions.clear());
-        });
-    }, []);
+  useEffect(() => {
+      history.listen((location, action) => {
+          // clear alert on location change
+          dispatch(alertActions.clear());
+      });
+  }, []);
+  useEffect(() => {
+    if(alert.type == "alert-success") {
+      toast.success(alert.message);
+    } else if(alert.type == "alert-danger") {
+      toast.error(alert.message);
+    }
+  }, [alert])
+  
   return (
+    <>
+      <ToastContainer autoClose={2000} />
       <Router history={history}>
           <Switch>
               <PrivateRoute exact path="/" component={AxiePage} />
@@ -37,6 +48,7 @@ function App() {
               <Route path="/register" component={RegisterPage} />
           </Switch>
       </Router>
+    </>
   );
 }
 
