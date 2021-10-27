@@ -1,61 +1,41 @@
 import { useState ,useEffect } from "react";
 import { MDBBadge } from 'mdbreact';
-export const DestResult = ({ hash, hash1, hash2 }) => {
-    // let icon, title;
-    // switch(status) {
-    //     case 0:
-    //         icon = (<i className="fa fa-check-circle fa-2x text-muted"></i>);
-    //         title = ('Perfect!');
-    //         break;
-    //     case 1:
-    //         icon = (<i className="fa fa-times-circle fa-2x text-warning"></i>);
-    //         title = ('Error.');
-    //         break;
-    //     case 2:
-    //         icon = (<i className="fa fa-minus-circle fa-2x text-info"></i>);
-    //         title = ('Hold on.');
-    //         break;
-    // }
-    // return (
-    //     <label className="d-flex align-items-center">
-    //         <span>
-    //             {icon}
-    //         </span>
-    //         <span className="ml-1">
-    //         <span className="d-block font-weight-bold">{title}</span>
-    //         <small className="d-block">See Details</small>
-    //         </span>
-    //     </label>
-    // )
-    
+export const DestResult = ({ hash }) => {
     return (
         <div>
-        {hash ? <div><a href={"https://explorer.roninchain.com/tx/" + hash} target="_blank">{hash.substr(0,6) + "..." + hash.substr(-4)}</a><br/></div> : ""}
-        {hash1 ? <div><a href={"https://explorer.roninchain.com/tx/" + hash1} target="_blank">{hash1.substr(0,6) + "..." + hash1.substr(-4)}</a><br/></div> : ""}
-        {hash2 ? <div><a href={"https://explorer.roninchain.com/tx/" + hash2} target="_blank">{hash2.substr(0,6) + "..." + hash2.substr(-4)}</a></div> : ""}
+        {hash && hash[0] ? <div><a href={"https://explorer.roninchain.com/tx/" + hash[0]} target="_blank">{hash[0].substr(0,6) + "..." + hash[0].substr(-4)}</a><br/></div> : ""}
+        {hash && hash[1] ? <div><a href={"https://explorer.roninchain.com/tx/" + hash[1]} target="_blank">{hash[1].substr(0,6) + "..." + hash[1].substr(-4)}</a><br/></div> : ""}
+        {hash && hash[2] ? <div><a href={"https://explorer.roninchain.com/tx/" + hash[2]} target="_blank">{hash[2].substr(0,6) + "..." + hash[2].substr(-4)}</a></div> : ""}
         </div>
     )
-    
 }
 
-export const PaymentStatus = ({ status }) => {
+export const PaymentStatus = ({ status, last_date }) => {
     if(status == undefined) return '';
     const vv = {
         0: ['UNPAID', 'text-warning'],
         1: ['PAID', 'text-muted'],
-        2: ['PENDING', 'text-info']
+        2: ['PENDING', 'text-info'],
+        3: ['PENDING PAYMENT', 'text-success']
     }
     return (
-        <label className={`${vv[status][1]} font-weight-bold`}>{vv[status][0]}</label>
+        <label className={`${vv[status][1]} font-weight-bold`}>{vv[status][0]} {
+            last_date && (status == 0 || status == 3) ? 
+                <small><br />Last paid on <br/>{last_date.substr(0, 10)}</small>
+            : last_date && (status == 1) ?
+                <small><br />Paid on <br/>{last_date.substr(0, 10)}</small>
+            :
+                ""}</label>
     )
 }
 
 export const ClaimStatus = ({ status }) => {
     if(status == undefined) return '';
     const vv = {
-        0: ["NOT YET", 'warning'],
+        0: ["NOT AVAILABLE", 'warning'],
         1: ["CLAIMED", 'light'],
-        2: ["PENDING", 'info']
+        2: ["PENDING", 'info'],
+        3: ["CLAIMABLE", "success"]
     }
     return (
         <MDBBadge color={vv[status][1]} pill className="px-4 py-2">

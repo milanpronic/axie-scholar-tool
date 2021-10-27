@@ -3,18 +3,23 @@ import {useState, useEffect} from 'react';
 import { useSelector } from 'react-redux';
 import '../rjs.css';
 const Banner = () => {
-    const total = useSelector(state=>state.summary.total);
-    const manager = useSelector(state=>state.summary.manager);
-    const scholar = useSelector(state=>state.summary.scholar);
-    const accounts = useSelector(state=>state.summary.accounts);
-    const latest = useSelector(state=>{
-        console.log('date-time=>',state);
-        const dd = new Date(state.summary.latest);
-        if (state.summary.latest == '0') {
-            return {date: '---- / -- / --', time: '-- : -- : --'};
-        }
-        return {date: dd.getFullYear() + "/" + (dd.getMonth()+1) + "/" + dd.getDate(), time: dd.getHours() + ":" + dd.getMinutes() + ":" + dd.getSeconds()};
-    });
+    const scholars = useSelector(state=>state.scholars);
+    let total = 0, manager = 0, scholar = 0, latest = '0', latest_date;
+    scholars.map(item => {
+        if (item["total"]) total += item["total"] * 1;
+        if (item["manager"]) manager += item["manager"] * 1;
+        if (item["scholar"]) scholar += item["scholar"] * 1;
+        if (item["last_paid"] && latest < item["last_paid"]) latest = item["last_paid"];	
+    })
+    const accounts = scholars.length;
+
+    if (latest == '0') {
+        latest_date = {date: '---- / -- / --', time: '-- : -- : --'};
+    } else {
+        const dd = new Date(latest);
+        latest_date = {date: dd.getFullYear() + "/" + (dd.getMonth()+1) + "/" + dd.getDate(), time: dd.getHours() + ":" + dd.getMinutes() + ":" + dd.getSeconds()};
+    }
+    
     const [rate, setRate] = useState(0);
     useEffect(() => {
         axios.get('https://api.coingecko.com/api/v3/simple/token_price/ethereum?contract_addresses=0xcc8fa225d80b9c7d42f96e9570156c65d6caaa25&vs_currencies=usd').then(res => {
@@ -49,8 +54,8 @@ const Banner = () => {
                         <p className="m-0 h3">ACCOUNTS</p>
                     </div>
                     <div className="col">
-                        <p className="m-0 h3">{latest.date}</p>
-                        <p className="m-0 h6">{latest.time}</p>
+                        <p className="m-0 h3">{latest_date.date}</p>
+                        <p className="m-0 h6">{latest_date.time}</p>
                         <p className="m-0 h3">LAST PAID</p>
                     </div>
                 </div>
