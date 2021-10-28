@@ -383,7 +383,8 @@ const Axie = () => {
 		}
 		const sendData = {
 			start_date: moment(start_date),
-			end_date: moment(end_date)
+			end_date: moment(end_date),
+			user_id: user.id
 		}
 
 		axios.post(`${process.env.REACT_APP_BACKEND_API}/api/scholars/download_csv_file`, sendData).then(res => {
@@ -393,8 +394,6 @@ const Axie = () => {
 			}).then(res => {
 				fileDownload(res.data, 'logs.csv');
 				setOpenLogModal(false);
-				setStartDate('');
-				setEndDate('');
 			})
 		})
 	}

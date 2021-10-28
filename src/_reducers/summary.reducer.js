@@ -7,7 +7,6 @@ const data = {
 };
 
 export function summary(state = data, action) {
-    console.log('payload', action);
     switch(action.type) {
         case "SET_SUMMARY":
             return {...state, ...action.payload};
