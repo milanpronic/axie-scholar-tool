@@ -5,14 +5,15 @@ import { useDispatch, useSelector } from 'react-redux';
 import { toast } from 'react-toastify';
 
 const RJSSocket = (props) => {
-
+    const user = useSelector(state => state.authentication.user);
     const dispatch = useDispatch();
 
     useEffect(() => {
         const connect = io(process.env.REACT_APP_BACKEND_API, { transports: ["websocket"] });
 
-        connect.emit('message', "OK?");
+        connect.emit('user_id', user.id);
         connect.on('message', (msg) => {
+            if(msg.user_id != user.id) return;
             if (typeof msg == 'object') {
                 if (msg.type == "success") toast.success(<div>Name: {msg.name}<br />Description: {msg.message}</div>);
                 else toast.warn(<div>Name: {msg.name}<br />Description: {msg.message}</div>);
@@ -20,7 +21,8 @@ const RJSSocket = (props) => {
             else if (msg == "refresh") props.updateTable();
         });
         connect.on("update_scholar", (msg) => {
-            dispatch({ type: "UPDATE_SCHOLAR", payload: msg});
+            if(msg.user_id != user.id) return;
+            dispatch({ type: "UPDATE_SCHOLAR", payload: msg.data});
         })
 
         // return () => {

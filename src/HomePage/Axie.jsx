@@ -282,14 +282,14 @@ const Axie = () => {
 		})
 	}
 	const onPayClick = () => {
-		axios.post(process.env.REACT_APP_BACKEND_API + '/api/pay', { addresses: scholars.filter(row => selected.indexOf(row.id) !== -1).map(row => row.address) }).then(res => {
+		axios.post(process.env.REACT_APP_BACKEND_API + '/api/pay', { user_id: user.id, addresses: scholars.filter(row => selected.indexOf(row.id) !== -1).map(row => row.address) }).then(res => {
 			dispatch({type: "UPDATE_SCHOLARS", payload: res.data})
 		}).catch(err => {
 			console.log(err);
 		})
 	}
 	const onClaimClick = () => {
-		axios.post(process.env.REACT_APP_BACKEND_API + '/api/claim', { addresses: scholars.filter(row => selected.indexOf(row.id) !== -1).map(row => row.address) }).then(res => {
+		axios.post(process.env.REACT_APP_BACKEND_API + '/api/claim', { user_id: user.id, addresses: scholars.filter(row => selected.indexOf(row.id) !== -1).map(row => row.address) }).then(res => {
 			dispatch({type: "UPDATE_SCHOLARS", payload: res.data})
 		}).catch(err => {
 			console.log(err);
