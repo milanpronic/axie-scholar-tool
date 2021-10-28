@@ -17,13 +17,18 @@ const prepare = (input_scholars) => {
             if(last_time.getTime()) {
                 item["next"] = last_time.getTime() + 14 * 24 * 3600 * 1000;
                 
-                if(item["next"] < Date.now() && item["total"] - item["balance"] > 0) item["claim_status"] = 3;
+                if(item["status"] && item["status"][0] == 0) item["claim_status"] = 2;
+                else if(item["status"] && item["status"][0] == 2) item["claim_status"] = 4;
+                else if(item["next"] < Date.now() && item["total"] - item["balance"] > 0) item["claim_status"] = 3;
                 else if(last_time < 100) item["claim_status"] = 0;
                 else if(Date.now() - last_time < 24 * 3600 * 1000) item["claim_status"] = 1;
                 else item["claim_status"] = 0;
             }
         }
-        if (item["balance"]) item["pay_status"] = 3;
+
+        if(item["status"] && (item["status"][1] == 0 || item["status"][2] == 0)) item["pay_status"] = 2;
+        else if(item["status"] && (item["status"][1] == 2 || item["status"][2] == 2)) item["pay_status"] = 4;
+        else if (item["balance"]) item["pay_status"] = 3;
         else if(item["last_paid"] && Date.now() - (new Date(item["last_paid"])) < 24 * 3600 * 1000) item["pay_status"] = 1;
         else item["pay_status"] = 0;
         return item;
@@ -44,6 +49,13 @@ export function scholars(state = data, action) {
         case "UPDATE_SCHOLAR":
             return prepare(state.map(row => {
                 if (row.id == action.payload.id) return {...row, ...action.payload};
+                return row;
+            }));
+            break;
+        case "UPDATE_SCHOLARS":
+            return prepare(state.map(row => {
+                const filter = action.payload.filter(row1 => row1.id == row.id);
+                if (filter) return {...row, ...filter[0]};
                 return row;
             }));
             break;

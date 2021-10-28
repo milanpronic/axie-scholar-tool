@@ -16,7 +16,8 @@ export const PaymentStatus = ({ status, last_date }) => {
         0: ['UNPAID', 'text-warning'],
         1: ['PAID', 'text-muted'],
         2: ['PENDING', 'text-info'],
-        3: ['PENDING PAYMENT', 'text-success']
+        3: ['PENDING PAYMENT', 'text-success'],
+        4: ['FAILED', 'text-danger']
     }
     return (
         <label className={`${vv[status][1]} font-weight-bold`}>{vv[status][0]} {
@@ -35,7 +36,8 @@ export const ClaimStatus = ({ status }) => {
         0: ["NOT AVAILABLE", 'warning'],
         1: ["CLAIMED", 'light'],
         2: ["PENDING", 'info'],
-        3: ["CLAIMABLE", "success"]
+        3: ["CLAIMABLE", "success"],
+        4: ['FAILED', 'danger']
     }
     return (
         <MDBBadge color={vv[status][1]} pill className="px-4 py-2">

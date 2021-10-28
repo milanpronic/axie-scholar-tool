@@ -221,7 +221,7 @@ const Axie = () => {
 		setAddress(row.address);
 		setAdminW(row.address1);
 		setScholarW(row.address2);
-		setRule(JSON.parse(row.rule));
+		if(typeof row.rule == "string") setRule(JSON.parse(row.rule)); else setRule(row.rule);
 		setKey(row.private);
 		setTotalBalance(row.total);
 		setOpenModal(true);
@@ -283,14 +283,14 @@ const Axie = () => {
 	}
 	const onPayClick = () => {
 		axios.post(process.env.REACT_APP_BACKEND_API + '/api/pay', { addresses: scholars.filter(row => selected.indexOf(row.id) !== -1).map(row => row.address) }).then(res => {
-			updateTable();
+			dispatch({type: "UPDATE_SCHOLARS", payload: res.data})
 		}).catch(err => {
 			console.log(err);
 		})
 	}
 	const onClaimClick = () => {
 		axios.post(process.env.REACT_APP_BACKEND_API + '/api/claim', { addresses: scholars.filter(row => selected.indexOf(row.id) !== -1).map(row => row.address) }).then(res => {
-			updateTable();
+			dispatch({type: "UPDATE_SCHOLARS", payload: res.data})
 		}).catch(err => {
 			console.log(err);
 		})
@@ -312,7 +312,17 @@ const Axie = () => {
 		setOpenBulkDelModal(false);
 	}
 	const onRefreshClick = () => {
-		updateTable();
+		if(selected.length) {
+			axios.post(process.env.REACT_APP_BACKEND_API + '/api/scholars/refresh/' + JSON.stringify(selected)).then(res => {
+				dispatch({type: "UPDATE_SCHOLARS", payload: selected.map(id=>{
+					return {id: id, total: null, balance: null, last_time: null};
+				})})
+			}).catch(err => {
+				console.log(err);
+			})
+		} else {
+			updateTable();
+		}
 	}
 
 	const onAddRule = () => {
