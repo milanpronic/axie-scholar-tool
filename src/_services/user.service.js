@@ -22,7 +22,7 @@ function login(username, password) {
         .then(user => {
             // store user details and jwt token in local storage to keep user logged in between page refreshes
             localStorage.setItem('axie_user', JSON.stringify(user));
-
+            localStorage.setItem('last_login', JSON.stringify(Date.now()));
             return user;
         });
 }
