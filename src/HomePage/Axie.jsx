@@ -163,14 +163,14 @@ const Axie = () => {
 
 	const handleChangePage = (event, newPage) => {
 		setPage(newPage);
-		localStorage.setItem('pagination_status', JSON.stringify({ page: newPage, rowsPerPage }));
+		localStorage.setItem('pagination_status', JSON.stringify({ page: newPage, rowsPerPage, order, orderBy }));
 	};
 
 	const handleChangeRowsPerPage = (event) => {
 		const value = parseInt(event.target.value, 10);
 		setRowsPerPage(value);
 		setPage(0);
-		localStorage.setItem('pagination_status', JSON.stringify({ page: 0, rowsPerPage: value }));
+		localStorage.setItem('pagination_status', JSON.stringify({ page: 0, rowsPerPage: value, order, orderBy }));
 	};
 
 	const handleRequestSort = (field) => {
@@ -180,6 +180,7 @@ const Axie = () => {
 		const isAsc = orderBy === field && order === 'asc';
 		setOrder(isAsc ? 'desc' : 'asc');
 		setOrderBy(field);
+		localStorage.setItem('pagination_status', JSON.stringify({page, rowsPerPage, order: isAsc ? 'desc' : 'asc', orderBy: field}))
 	}
 
 	const updateTable = () => {
@@ -199,6 +200,8 @@ const Axie = () => {
 			const tt = JSON.parse(localStorage.getItem('pagination_status'));
 			setPage(tt.page);
 			setRowsPerPage(tt.rowsPerPage);
+			setOrder(tt.order);
+			setOrderBy(tt.orderBy);
 		}
 	}, []);
 
@@ -523,7 +526,9 @@ const Axie = () => {
 																			(new Date(row["next"]).getMonth() + 1) + "/" + new Date(row["next"]).getDate() + " " + new Date(row["next"]).getHours() + ":" + new Date(row["next"]).getMinutes()
 																			: col.field == 'action' ?
 																				<div style={{ 'display': 'flex' }}><MDBBtn size="sm" onClick={() => onEdit(row)}>edit</MDBBtn><MDBBtn size="sm" color="warning" onClick={() => onDelete(row)}>del</MDBBtn></div>
-																				: row[col.field]
+																				: col.field == 'name' ?
+																					<a href={"https://explorer.roninchain.com/address/" + row['address']} target="_blank">{row[col.field]}</a>
+																					: row[col.field]
 													}</TableCell>
 												))}
 											</TableRow>
